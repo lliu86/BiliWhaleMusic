@@ -122,8 +122,7 @@ window.petAPI.onPlayback((state) => {
   }
 });
 
-/* 实时节拍：强度同时驱动摇摆速度(--dance-dur)与摆幅(--sway)，鼓点触发脉冲弹跳(独立层，不抢摇摆) */
-let beatPulseTimer = null;
+/* 实时节拍：强度驱动摇摆速度(--dance-dur)与摆幅(--sway)，实现随音乐律动 */
 window.petAPI.onBeat((v) => {
   if (!v) return;
   const level = Math.max(0, Math.min(1, Number(v.level) || 0));
@@ -132,11 +131,6 @@ window.petAPI.onBeat((v) => {
   const sway = (2 + level * 6).toFixed(1) + 'deg';
   document.body.style.setProperty('--dance-dur', dur);
   document.body.style.setProperty('--sway', sway);
-  if (v.beat && playing) {
-    document.body.classList.add('beat');
-    clearTimeout(beatPulseTimer);
-    beatPulseTimer = setTimeout(() => document.body.classList.remove('beat'), 180);
-  }
 });
 
 /* 弹幕氛围：切歌时挑一条真实弹幕吐槽 */

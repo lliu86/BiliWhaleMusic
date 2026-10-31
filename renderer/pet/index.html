@@ -39,7 +39,7 @@
     will-change: transform;
   }
 
-  /* 中间层：鼓点脉冲挂在这里，与 #whale 的摇摆动画互不抢占 */
+  /* 中间层保留：供未来叠加动画使用，不影响摇摆 */
   #whaleInner {
     width: 100%;
     display: flex;
@@ -81,12 +81,6 @@
     60% { transform: translateY(-10px) scale(1.02); }
   }
   @keyframes twirl { to { transform: rotate(360deg); } }
-  /* 鼓点脉冲：节拍到来时鲸鱼弹跳一下 */
-  @keyframes beatPulse {
-    0% { transform: translateY(0) rotate(0deg) scale(1.06); }
-    60% { transform: translateY(-10px) rotate(0deg) scale(1.04); }
-    100% { transform: translateY(0) rotate(0deg) scale(1); }
-  }
 
   body.action-idle #whale { animation: float 3.4s ease-in-out infinite; }
   body.action-dance #whale { animation: dance var(--dance-dur, 0.5s) ease-in-out infinite alternate; }
@@ -95,7 +89,6 @@
   body.mood-happy.action-dance #whale { animation: bounce-happy var(--dance-dur, 0.9s) ease-in-out infinite; }
   body.action-twirl #whale { animation: twirl 0.6s ease; }
   body.action-drag #whale { transform: rotate(-7deg) scale(1.04); }
-  body.beat #whaleInner { animation: beatPulse 0.17s ease-out; }
 
   #whaleShadow {
     position: absolute;
@@ -201,14 +194,19 @@
   #panel {
     position: absolute;
     right: calc(246px * var(--s));
-    bottom: 10px;
+    top: 6px;
+    bottom: auto;
     width: calc(180px * var(--s));
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
+    max-height: calc(100% - 12px);
+    overflow-y: auto;
+    scrollbar-width: none;
     z-index: 5;
     transition: opacity 0.18s ease, transform 0.18s ease;
   }
+  #panel::-webkit-scrollbar { display: none; }
   #panel.hide {
     opacity: 0;
     transform: translateX(10px);
