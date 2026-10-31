@@ -58,8 +58,27 @@
     to { transform: translateY(-8px) rotate(3.5deg) scale(1.03); }
   }
 
+  @keyframes dance-hype {
+    from { transform: translateY(-2px) rotate(-6deg) scale(1.02); }
+    to { transform: translateY(-12px) rotate(6deg) scale(1.06); }
+  }
+  @keyframes dance-chill {
+    from { transform: translateY(0) rotate(-2deg) scale(1); }
+    to { transform: translateY(-5px) rotate(2deg) scale(1.01); }
+  }
+  @keyframes bounce-happy {
+    0%, 100% { transform: translateY(0) scale(1); }
+    40% { transform: translateY(-14px) scale(1.03); }
+    60% { transform: translateY(-10px) scale(1.02); }
+  }
+  @keyframes twirl { to { transform: rotate(360deg); } }
+
   body.action-idle #whale { animation: float 3.4s ease-in-out infinite; }
   body.action-dance #whale { animation: dance 0.5s ease-in-out infinite alternate; }
+  body.mood-hype.action-dance #whale { animation: dance-hype 0.28s ease-in-out infinite alternate; }
+  body.mood-chill.action-dance #whale { animation: dance-chill 1.2s ease-in-out infinite alternate; }
+  body.mood-happy.action-dance #whale { animation: bounce-happy 0.9s ease-in-out infinite; }
+  body.action-twirl #whale { animation: twirl 0.6s ease; }
   body.action-drag #whale { transform: rotate(-7deg) scale(1.04); }
 
   #whaleShadow {
@@ -147,6 +166,7 @@
     pointer-events: none;
     z-index: 7;
   }
+  #hearts i.star { color: #f5c542; text-shadow: 0 1px 2px rgba(180, 130, 0, 0.35); }
   #hearts i {
     position: absolute;
     font-style: normal;
@@ -291,7 +311,7 @@
   #widgetBtn svg { width: 13px; height: 13px; }
 </style>
 </head>
-<body class="action-idle">
+<body class="action-idle mood-chill">
   <div id="stage">
     <aside id="panel" class="hide">
       <div class="card player">
@@ -326,6 +346,11 @@
         <div class="row"><span>内存</span><b id="memVal">--</b></div>
         <div class="bar"><i id="memBar"></i></div>
         <div class="row"><span>听歌</span><b id="listenVal">0m</b></div>
+      </div>
+      <div class="card grow">
+        <div class="row"><span id="growLevel">Lv.1</span><b id="growWave">0 音浪</b></div>
+        <div class="bar"><i id="growBar"></i></div>
+        <div class="s" id="growExp">0 / 600 · 再听 10 分钟升级</div>
       </div>
       <div class="card timer">
         <div class="t" id="timerVal">25:00</div>

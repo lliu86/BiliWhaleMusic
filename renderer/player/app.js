@@ -635,6 +635,7 @@ function syncLyrics(force = false) {
   const nodes = body.querySelectorAll('.ly-line');
   if (nodes[ly.active]) nodes[ly.active].classList.remove('active');
   ly.active = idx;
+  if (bridge.setLyricLine) bridge.setLyricLine(idx >= 0 ? ly.lines[idx].text : '');
   const cur = nodes[idx];
   if (!cur) return;
   cur.classList.add('active');
@@ -646,6 +647,7 @@ function syncLyrics(force = false) {
 
 async function loadLyrics(item) {
   if (!item) return;
+  if (bridge.setLyricLine) bridge.setLyricLine('');
   const key = `${item.bvid}:${item.cid || ''}:${songName(item)}`;
   if (state.lyrics.key === key) {
     if (!state.lyrics.loading) renderLyricsView();
@@ -889,6 +891,10 @@ function syncPlayback(force = false) {
     position: audio.currentTime || 0,
     duration: Number.isFinite(audio.duration) ? audio.duration : 0,
     hasGroup: state.queue.some((it) => !!it.album),
+    author: state.current?.author || '',
+    bvid: state.current?.bvid || '',
+    cid: state.current?.cid || '',
+    page: state.current?.pageNo || 0,
   });
 }
 
@@ -1115,4 +1121,4 @@ async function boot() {
 boot();
 
 // 调试/自动化截图用：控制台里可以拿到状态、手动切页
-window.__biu = { state, renderContent, loadFolders, switchTab, refreshFavorites: () => loadFolders(true) };
+window.__biu = { state, renderContent, loadFolders, switchTab, playAt, refreshFavorites: () => loadFolders(true) };

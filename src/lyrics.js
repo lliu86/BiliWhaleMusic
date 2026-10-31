@@ -111,32 +111,36 @@ class LyricsClient {
       } catch (_) {
         continue;
       }
-      const best = this.pick(songs, name, artist, duration);
-      if (!best) continue;
-      try {
-        const ly = await getJSON(
-          `https://music.163.com/api/song/lyric?id=${best.id}&lv=1&kv=1&tv=-1`
-        );
-        const lrc = (ly && ly.lrc && ly.lrc.lyric) || '';
-        if (lrc && /\[\d{1,2}:\d{2}/.test(lrc)) {
-          return {
-            ok: true,
-            source: '网易云音乐',
-            name: best.name,
-            artist: (best.artists || []).map((a) => a.name).join(' / '),
-            duration: Math.round((best.duration || 0) / 1000),
-            lrc,
-          };
+      const candidates = this.pick(songs, name, artist, duration, 3);
+      for (const best of candidates) {
+        try {
+          const ly = await getJSON(
+            `https://music.163.com/api/song/lyric?id=${best.id}&lv=1&kv=1&tv=-1`
+          );
+          const lrc = (ly && ly.lrc && ly.lrc.lyric) || '';
+          const lines = (lrc.match(/\[\d{1,2}:\d{2}/g) || []).length;
+          // 至少要几行才认，避免只有「歌名 - 歌手」一行的残缺歌词
+          if (lrc && lines >= 4) {
+            return {
+              ok: true,
+              source: '网易云音乐',
+              name: best.name,
+              artist: (best.artists || []).map((a) => a.name).join(' / '),
+              duration: Math.round((best.duration || 0) / 1000),
+              lrc,
+            };
+          }
+        } catch (_) {
+          /* 换下一个候选 */
         }
-      } catch (_) {
-        /* 换下一个候选 */
       }
     }
     return { ok: false, name, artist };
   }
 
-  pick(songs, name, artist, duration) {
-    if (!songs.length) return null;
+  /** 返回按匹配度排序的前 n 个候选（默认 1） */
+  pick(songs, name, artist, duration, n = 1) {
+    if (!songs.length) return [];
     const target = norm(name);
     const by = norm(artist).split(/[、,\/]/)[0];
     const scored = songs.map((s) => {
@@ -144,17 +148,22 @@ class LyricsClient {
       let score = 0;
       if (n === target) score += 100;
       else if (n.includes(target) || target.includes(n)) score += 60;
-      if (by && norm((s.artists || []).map((a) => a.name).join('')).includes(by)) score += 50;
+      let artistOk = true;
+      if (by) {
+        artistOk = norm((s.artists || []).map((a) => a.name).join('')).includes(by);
+        if (artistOk) score += 50;
+        else score -= 60;
+      }
       const d = Math.abs((s.duration || 0) / 1000 - (duration || 0));
       if (duration && d <= 3) score += 40;
       else if (duration && d <= 8) score += 20;
       else if (duration) score -= Math.min(30, d);
-      return { s, score };
+      return { s, score, artistOk };
     });
     scored.sort((a, b) => b.score - a.score);
-    const top = scored[0];
-    if (!top || top.score < 60) return null;
-    return top.s;
+    const pool = scored.filter((x) => x.score >= 60 && (x.artistOk || !by));
+    const top = pool.slice(0, n);
+    return top.map((x) => x.s);
   }
 }
 

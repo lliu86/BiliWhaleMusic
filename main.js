@@ -55,7 +55,7 @@ process.on('unhandledRejection', (err) => {
 const ASSETS = path.join(__dirname, 'assets');
 const PET_W = 240;
 const PET_PANEL_W = 200;
-const PET_H = 316;
+const PET_H = 420;
 
 let playerWin = null;
 let petWin = null;
@@ -148,6 +148,10 @@ app.whenReady().then(() => {
   registerShortcuts();
   log('windows created');
 
+  // 听歌时光机：启动 3 分钟后看一次，之后每小时一次
+  setTimeout(checkFlashback, 3 * 60 * 1000);
+  setInterval(checkFlashback, 60 * 60 * 1000);
+
   if (process.argv.includes('--shot')) {
     setTimeout(captureShots, 4000);
   }
@@ -161,6 +165,51 @@ app.whenReady().then(() => {
 
 let prevCpuTimes = os.cpus().map((c) => c.times);
 let statsTimer = null;
+
+/* 成长系统：音浪值 = 累计听歌秒数，等级用平方根曲线（约 10 分钟一级） */
+function growth() {
+  const wave = Math.max(0, Math.round(Number(store.get('listenTotal')) || 0));
+  const level = 1 + Math.floor(Math.sqrt(wave / 600));
+  const exp = wave % 600;
+  if (Number(store.get('petLevel')) !== level) {
+    store.set('petLevel', level);
+    store.set('petExp', exp);
+  }
+  return { wave, level, exp, need: 600 };
+}
+
+const DAY_LIMIT = 50;
+
+function recordHistory(pb) {
+  if (!pb || !pb.title) return;
+  const day = localDay();
+  const map = store.get('listenHistory') || {};
+  const list = Array.isArray(map[day]) ? map[day] : [];
+  const last = list[list.length - 1];
+  if (last && last.title === pb.title) return;
+  list.push({ t: Date.now(), title: pb.title, artist: pb.artist || '' });
+  while (list.length > DAY_LIMIT) list.shift();
+  map[day] = list;
+  const days = Object.keys(map).sort();
+  while (days.length > 400) delete map[days.shift()];
+  store.set('listenHistory', map);
+}
+
+function localDay(d = new Date()) {
+  const p = (n) => String(n).padStart(2, '0');
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+}
+
+function checkFlashback() {
+  if (!petWin || petWin.isDestroyed()) return;
+  const now = new Date();
+  const lastYear = localDay(new Date(now.getFullYear() - 1, now.getMonth(), now.getDate()));
+  const map = store.get('listenHistory') || {};
+  const list = map[lastYear];
+  if (!Array.isArray(list) || !list.length) return;
+  const pick = list[Math.floor(Math.random() * list.length)];
+  petWin.webContents.send('pet:flashback', { title: pick.title, artist: pick.artist || '' });
+}
 
 function sampleStats() {
   const cpus = os.cpus();
@@ -184,14 +233,21 @@ function sampleStats() {
     uptime: os.uptime(),
     listen: Number(store.get('listenTotal')) || 0,
     listenToday: Number(store.get('listenToday')) || 0,
+    ...growth(),
   };
 }
+
+let lastStatsPush = 0;
 
 function startWidgetStats() {
   clearInterval(statsTimer);
   statsTimer = setInterval(() => {
     if (!petWin || petWin.isDestroyed() || !petWin.webContents) return;
-    if (!store.get('petPanelOpen')) return;
+    const open = !!store.get('petPanelOpen');
+    // 面板收起时只在播放中低频推送，保证音浪/升级仍然生效
+    if (!open && !playback.playing) return;
+    if (!open && Date.now() - lastStatsPush < 6000) return;
+    lastStatsPush = Date.now();
     petWin.webContents.send('pet:stats', sampleStats());
   }, 2000);
 }
@@ -671,6 +727,61 @@ function applyPetScale(scale) {
 /* IPC                                                                 */
 /* ------------------------------------------------------------------ */
 
+/* 弹幕氛围：主进程抓取 danmaku，桌宠只负责说 */
+const danmakuCache = new Map();
+
+function decodeDmXml(xml) {
+  const out = [];
+  const re = /<d p="[^"]*">([\s\S]*?)<\/d>/g;
+  let m;
+  while ((m = re.exec(xml))) {
+    const text = m[1]
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&amp;/g, '&')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .trim();
+    if (text && text.length <= 60 && !out.includes(text)) out.push(text);
+    if (out.length >= 200) break;
+  }
+  return out;
+}
+
+ipcMain.handle('pet:danmaku', async (_e, bvid, cid) => {
+  const key = String(cid || bvid || '');
+  if (!key) return { ok: false };
+  if (danmakuCache.has(key)) return { ok: true, list: danmakuCache.get(key) };
+  try {
+    const url = `https://api.bilibili.com/x/v1/dm/list.so?oid=${encodeURIComponent(cid || bvid)}`;
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent': UA,
+        Referer: 'https://www.bilibili.com/',
+      },
+    });
+    if (!res.ok) return { ok: false };
+    const buf = Buffer.from(await res.arrayBuffer());
+    const xml = buf.toString('utf8');
+    const list = decodeDmXml(xml);
+    danmakuCache.set(key, list);
+    log('danmaku fetched', key, list.length);
+    return { ok: true, list };
+  } catch (err) {
+    log('danmaku error', err && err.message);
+    return { ok: false };
+  }
+});
+
+let lastLyricLine = '';
+
+ipcMain.on('lyric:line', (_e, text) => {
+  const line = String(text || '').slice(0, 120);
+  if (line === lastLyricLine) return;
+  lastLyricLine = line;
+  if (petWin && !petWin.isDestroyed()) petWin.webContents.send('lyric:line', line);
+});
+
 ipcMain.handle('lyrics:get', async (_e, q) => {
   try {
     return await lyricClient.get(q || {});
@@ -963,8 +1074,14 @@ ipcMain.on('playback:update', (_e, state) => {
       title: playback.title,
       artist: playback.artist,
       hasGroup: !!playback.hasGroup,
+      duration: playback.duration || 0,
+      author: playback.author || '',
+      bvid: playback.bvid || '',
+      cid: playback.cid || '',
+      page: playback.page || 0,
     });
   }
+  recordHistory(playback);
   app.emit('nekobiu:playback-changed');
 });
 

@@ -25,11 +25,62 @@ function setAction(a) {
   }
 }
 
+/* 情绪：只影响 dance 动画强度，不改动作状态机 */
+let mood = 'chill';
+function setMood(next) {
+  if (!next || next === mood) return;
+  mood = next;
+  for (const m of ['chill', 'hype', 'happy']) {
+    document.body.classList.toggle('mood-' + m, m === next);
+  }
+}
+
+function pickMood(state) {
+  if (state.hasGroup === false) return 'happy';
+  const t = String(state.title || '') + ' ' + String(state.artist || '');
+  if (/remix|燃|战歌|电音|dance|蹦迪|DJ|摇滚|串烧/i.test(t)) return 'hype';
+  if (Number(state.duration) >= 300) return 'hype';
+  if (/抒情|温柔|安静|治愈|钢琴|纯音乐|钢琴曲/i.test(t)) return 'chill';
+  return 'chill';
+}
+
+let lyricTimer = null;
+let lyricHold = null;
+
+function stopLyric() {
+  clearInterval(lyricTimer);
+  clearTimeout(lyricHold);
+  lyricTimer = null;
+  lyricHold = null;
+}
+
 function say(text, ms = 4200) {
+  stopLyric();
   bubbleText.textContent = text;
   bubble.classList.add('show');
   clearTimeout(bubbleTimer);
   bubbleTimer = setTimeout(() => bubble.classList.remove('show'), ms);
+}
+
+/* 逐字歌词：像在哼唱 */
+function sayLyric(text) {
+  if (!text) {
+    if (lastTitle) say('♪ ' + lastTitle, 4200);
+    return;
+  }
+  stopLyric();
+  clearTimeout(bubbleTimer);
+  bubbleText.textContent = '';
+  bubble.classList.add('show');
+  let i = 0;
+  lyricTimer = setInterval(() => {
+    i += 1;
+    bubbleText.textContent = text.slice(0, i);
+    if (i >= text.length) {
+      clearInterval(lyricTimer);
+      lyricTimer = null;
+    }
+  }, 85);
 }
 
 /* ---------------- 与主进程联动 ---------------- */
@@ -56,6 +107,7 @@ window.petAPI.onPlayback((state) => {
   if (state.title) lastTitle = state.title;
   if (state.artist) lastArtist = state.artist;
   playing = !!state.playing;
+  setMood(pickMood(state));
 
   if (playing) setAction('dance');
   else setAction('idle');
@@ -63,8 +115,31 @@ window.petAPI.onPlayback((state) => {
   updatePlayIcon();
   if (nowTitle) nowTitle.textContent = state.title || '未在播放';
   if (pNextGroup) pNextGroup.style.display = state.hasGroup ? '' : 'none';
-  if (changed) say('♪ ' + state.title);
+  if (changed) {
+    say('♪ ' + state.title);
+    requestDanmaku(state);
+  }
 });
+
+/* 弹幕氛围：切歌时挑一条真实弹幕吐槽 */
+let lastDanmakuKey = '';
+function requestDanmaku(state) {
+  if (!window.petAPI.danmaku) return;
+  const key = String(state.cid || state.bvid || '');
+  if (!key || key === lastDanmakuKey) return;
+  lastDanmakuKey = key;
+  if (!state.bvid && !state.cid) return;
+  window.petAPI
+    .danmaku(state.bvid, state.cid)
+    .then((res) => {
+      if (!res || !res.ok || !res.list || !res.list.length) return;
+      const pool = res.list.filter((t) => t.length >= 5 && t.length <= 30);
+      const list = pool.length ? pool : res.list;
+      const text = list[Math.floor(Math.random() * list.length)];
+      say('弹幕说：' + text, 4500);
+    })
+    .catch(() => {});
+}
 
 window.petAPI.onScale((s) => {
   scale = s;
@@ -161,6 +236,7 @@ function renderStats(st) {
   memBar.style.width = mem + '%';
   const listenEl = document.getElementById('listenVal');
   if (listenEl) listenEl.textContent = fmtListen(st.listen);
+  renderGrow(st);
   cpuBar.classList.toggle('hot', cpu >= 80);
   memBar.classList.toggle('hot', mem >= 88);
 }
@@ -210,17 +286,67 @@ timerReset.addEventListener('click', () => {
 });
 renderTimer();
 
+/* ---------------- 成长系统（音浪值） ---------------- */
+
+let lastLevel = 0;
+
+function renderGrow(st) {
+  const level = Number(st.level) || 1;
+  const exp = Number(st.exp) || 0;
+  const need = Number(st.need) || 600;
+  const wave = Number(st.wave) || 0;
+  const lvEl = document.getElementById('growLevel');
+  const waveEl = document.getElementById('growWave');
+  const barEl = document.getElementById('growBar');
+  const expEl = document.getElementById('growExp');
+  if (lvEl) lvEl.textContent = 'Lv.' + level;
+  if (waveEl) waveEl.textContent = wave.toLocaleString('zh-CN') + ' 音浪';
+  if (barEl) barEl.style.width = Math.min(100, Math.round((exp / need) * 100)) + '%';
+  if (expEl) {
+    const left = Math.max(0, Math.ceil((need - exp) / 60));
+    expEl.textContent = exp + ' / ' + need + ' · 再听 ' + left + ' 分钟升级';
+  }
+  if (lastLevel && level > lastLevel) {
+    say('升到 Lv.' + level + ' 啦，继续喂我歌～', 4500);
+  }
+  lastLevel = level;
+  document.body.classList.toggle('lv3', level >= 3);
+}
+
+/* ---------------- 时光机 ---------------- */
+
+window.petAPI.onFlashback((data) => {
+  if (!data || !data.title) return;
+  say('📅 去年今日你在听《' + data.title + '》', 6000);
+});
+
+/* ---------------- 歌词哼唱 ---------------- */
+
+window.petAPI.onLyricLine((text) => {
+  if (!playing) return;
+  sayLyric(text);
+});
+
 /* ---------------- 摸头 ---------------- */
+
+let patCount = 0;
+let patTimer = null;
 
 function pat() {
   hideControls();
   petpet.classList.add('show');
   setTimeout(() => petpet.classList.remove('show'), 1100);
 
+  patCount += 1;
+  clearTimeout(patTimer);
+  patTimer = setTimeout(() => (patCount = 0), 5000);
+
+  const star = patCount >= 5;
   hearts.innerHTML = '';
   for (let i = 0; i < 6; i++) {
     const h = document.createElement('i');
-    h.textContent = ['♥', '♡'][i % 2];
+    h.textContent = star ? ['★', '☆'][i % 2] : ['♥', '♡'][i % 2];
+    if (star) h.className = 'star';
     h.style.left = 40 + Math.random() * 60 + '%';
     h.style.setProperty('--dx', (Math.random() * 40 - 20).toFixed(0) + 'px');
     h.style.animationDelay = (i * 0.07).toFixed(2) + 's';
@@ -229,7 +355,18 @@ function pat() {
   }
   setTimeout(() => (hearts.innerHTML = ''), 1400);
 
-  say(['rua～', '好舒服…', '再摸一下嘛', '喵？不对，呜～'][Math.floor(Math.random() * 4)], 1800);
+  const hour = new Date().getHours();
+  if (patCount >= 5) {
+    say('最喜欢你啦！', 2200);
+  } else if (patCount === 3) {
+    say('被你摸晕啦～', 1800);
+    document.body.classList.add('action-twirl');
+    setTimeout(() => document.body.classList.remove('action-twirl'), 700);
+  } else if (hour >= 23 || hour < 6) {
+    say('这么晚还在摸我，快去睡觉啦～', 2500);
+  } else {
+    say(['rua～', '好舒服…', '再摸一下嘛', '喵？不对，呜～'][Math.floor(Math.random() * 4)], 1800);
+  }
 }
 
 /* ---------------- 鼠标交互 ---------------- */

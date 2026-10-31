@@ -15,6 +15,10 @@ const DEFAULTS = {
   listenTotal: 0,
   listenToday: 0,
   listenDate: '',
+  listenWave: 0,
+  petLevel: 1,
+  petExp: 0,
+  listenHistory: {},
 };
 
 class Store {
