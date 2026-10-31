@@ -90,7 +90,7 @@ Requirements: Node.js 18+, Windows 10/11 (macOS / Linux untested, theoretically 
 
 > This directory ships a portable Electron runtime (`runtime/`), so you can
 > also launch it without installing Node by double-clicking the desktop
-> shortcut `鲸音 BiliWhaleMusic` (recommended); it points to `runtime/nekobiu.exe`
+> shortcut `BiliWhaleMusic` (recommended); it points to `runtime/nekobiu.exe`
 > with the necessary arguments and icon. Because it is an exe shortcut, it
 > avoids Windows' "unverified publisher" script prompt.
 > You can also double-click `start.cmd`: it first shows an

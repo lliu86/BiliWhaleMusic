@@ -1,4 +1,4 @@
-# 鲸音 BiliWhaleMusic · 小鲸鱼 × B站音乐播放器
+# BiliWhaleMusic · 小鲸鱼 × B站音乐播放器
 
 ![License](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Electron](https://img.shields.io/badge/Electron-33.4.11-47848F.svg)
@@ -79,7 +79,7 @@ npm start
 要求：Node.js 18+、Windows 10/11（macOS / Linux 未测试，理论可用）。
 
 > 本目录已经附带一个免安装的 Electron 运行时（`runtime/`），**不想装 Node 也可以直接双击桌面上的
-> `鲸音 BiliWhaleMusic` 快捷方式**（推荐）启动；它指向 `runtime/nekobiu.exe` 并带上必要参数与图标，
+> `BiliWhaleMusic` 快捷方式**（推荐）启动；它指向 `runtime/nekobiu.exe` 并带上必要参数与图标，
 > 因为是 exe 快捷方式，不会触发 Windows 的「无法验证发布者」脚本提示。
 > 也可以双击 `start.cmd`：会先弹一个「打开文件 - 安全警告」，点「运行」就行，那是 Windows
 > 对未签名 `.cmd` 脚本的常规确认，不是杀毒报警。`start.cmd` 使用 `--no-sandbox`、`--force-device-scale-factor=1`

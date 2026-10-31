@@ -1,6 +1,6 @@
 'use strict';
 
-/* 鲸音 BiliWhaleMusic 桌宠 —— DeepSeek 小鲸鱼
+/* BiliWhaleMusic 桌宠 —— DeepSeek 小鲸鱼
    形象与气泡风格来自 dsh-whale-widget（MIT，Copyright (c) 2026 MeteorNOX）。
    桌面版行为：固定在原地漂浮，不自己走动；可以拖动；播放音乐时摇摆。 */
 

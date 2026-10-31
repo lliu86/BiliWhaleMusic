@@ -3,7 +3,7 @@
   "productName": "BiliWhaleMusic",
   "version": "1.0.0",
   "private": true,
-  "description": "鲸音 BiliWhaleMusic - 小鲸鱼桌宠 × B站音乐播放器（Bili + dsh-whale-widget + ANeko 的合并实验）",
+  "description": "BiliWhaleMusic - 小鲸鱼桌宠 × B站音乐播放器（Bili + dsh-whale-widget + ANeko 的合并实验）",
   "main": "main.js",
   "author": "BiliWhaleMusic",
   "license": "MIT",

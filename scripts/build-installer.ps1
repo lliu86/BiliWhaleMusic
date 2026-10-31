@@ -1,4 +1,4 @@
-# 打包 BiliWhaleMusic 安装包：纯 ASCII 构建目录放在 D:\biuwhale-build
+﻿# 打包 BiliWhaleMusic 安装包：纯 ASCII 构建目录放在 D:\biuwhale-build
 # 用法：powershell -NoProfile -ExecutionPolicy Bypass -File scripts\build-installer.ps1
 $ErrorActionPreference = 'Stop'
 

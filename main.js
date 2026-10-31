@@ -488,7 +488,7 @@ function createPlayer() {
     transparent: true,
     backgroundColor: '#00000000',
     roundedCorners: true,
-    title: '鲸音 BiliWhaleMusic',
+    title: 'BiliWhaleMusic',
     icon: path.join(ASSETS, 'icon.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload-player.js'),
@@ -681,7 +681,7 @@ function createTray() {
   let image = nativeImage.createFromPath(iconPath);
   if (image.isEmpty()) image = nativeImage.createEmpty();
   tray = new Tray(image.resize({ width: 20, height: 20 }));
-  tray.setToolTip('鲸音 BiliWhaleMusic · 小鲸鱼音乐播放器');
+  tray.setToolTip('BiliWhaleMusic · 小鲸鱼音乐播放器');
 
   const rebuild = () => {
     const menu = Menu.buildFromTemplate([
@@ -710,7 +710,7 @@ function createTray() {
           if (petWin) petWin.setAlwaysOnTop(item.checked, 'floating');
         } },
       { type: 'separator' },
-      { label: '退出 鲸音 BiliWhaleMusic', click: () => { quitting = true; app.quit(); } },
+      { label: '退出 BiliWhaleMusic', click: () => { quitting = true; app.quit(); } },
     ]);
     tray.setContextMenu(menu);
   };
@@ -1177,7 +1177,7 @@ ipcMain.handle('settings:apply', (_e, patch) => {
 ipcMain.on('playback:update', (_e, state) => {
   Object.assign(playback, state || {});
   if (tray) tray.setToolTip(
-    playback.title ? `鲸音 BiliWhaleMusic · ${playback.title}` : '鲸音 BiliWhaleMusic · 小鲸鱼音乐播放器'
+    playback.title ? `BiliWhaleMusic · ${playback.title}` : 'BiliWhaleMusic · 小鲸鱼音乐播放器'
   );
   if (petWin && !petWin.isDestroyed()) {
     petWin.webContents.send('playback', {
@@ -1298,7 +1298,7 @@ ipcMain.on('pet:context-menu', () => {
       },
     },
     { type: 'separator' },
-    { label: '退出 鲸音 BiliWhaleMusic', click: () => { quitting = true; app.quit(); } },
+    { label: '退出 BiliWhaleMusic', click: () => { quitting = true; app.quit(); } },
   ]);
   menu.popup({ window: petWin, x: Math.round(w / 2), y: 20 });
 });
