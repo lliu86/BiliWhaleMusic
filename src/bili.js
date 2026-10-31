@@ -49,6 +49,11 @@ class BiliClient {
     this.cookie = String(cookie || '').trim();
   }
 
+  /** 当前生效的 cookie 串（含服务端下发的 buvid 等） */
+  getCookie() {
+    return this.cookie;
+  }
+
   /** 从 Set-Cookie 里捕获需要的字段 */
   _absorbCookies(res) {
     const list =
@@ -59,6 +64,7 @@ class BiliClient {
       if (eq <= 0) continue;
       const name = kv.slice(0, eq).trim();
       if (!/^(buvid3|buvid4|b_nut|buvid_fp|SESSDATA|bili_jct|DedeUserID)$/.test(name)) continue;
+      this.cookie = this.cookie.replace(new RegExp(`(^|;\\s*)${name}=[^;]*`), `$1${kv}`);
       if (new RegExp(`(^|;\\s*)${name}=`).test(this.cookie)) continue;
       this.cookie = this.cookie ? `${this.cookie}; ${kv}` : kv;
     }
@@ -103,7 +109,8 @@ class BiliClient {
         });
         const j = await res.json();
         if (j.code === 0 && j.data && j.data.b_3) {
-          this.cookie = `buvid3=${j.data.b_3}; buvid4=${j.data.b_4}`;
+          const extra = `buvid3=${j.data.b_3}; buvid4=${j.data.b_4}`;
+          this.cookie = this.cookie ? `${this.cookie}; ${extra}` : extra;
         }
       } catch (_) {
         /* 拿不到就继续，大概率仍可用 */

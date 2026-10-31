@@ -107,6 +107,14 @@ app.setAppUserModelId('com.biuwhale.app');
 // 透明置顶小窗在部分虚拟机 / 远程桌面里用 GPU 合成会花屏或不可见，关掉硬件加速更稳
 app.disableHardwareAcceleration();
 
+app.on('before-quit', () => {
+  try {
+    if (store && bili.getCookie()) store.set('cookie', bili.getCookie());
+  } catch (_) {
+    /* ignore */
+  }
+});
+
 app.whenReady().then(() => {
   log('app ready, userData=', app.getPath('userData'));
   store = new Store(path.join(app.getPath('userData'), 'biuwhale.json'));
@@ -728,13 +736,26 @@ async function currentUser() {
   if (!store.get('cookie')) return { isLogin: false };
   try {
     const info = await bili.navInfo();
-    if (!info.isLogin) return { isLogin: false };
+    if (!info.isLogin) return { isLogin: false, needLogin: true };
     store.set('mid', info.mid);
     store.set('user', { uname: info.uname, face: info.face });
+    // 服务端可能下发新的 buvid3/SESSDATA，及时回写，避免下次启动被判未登录
+    store.set('cookie', bili.getCookie());
     return { isLogin: true, ...info };
   } catch (err) {
     log('nav failed', err.message);
-    return { isLogin: false };
+    // 网络异常不等于登录失效：有本地账号就按"离线已登录"继续用
+    const u = store.get('user');
+    if (u && u.uname) {
+      return {
+        isLogin: true,
+        offline: true,
+        mid: store.get('mid'),
+        uname: u.uname,
+        face: u.face || '',
+      };
+    }
+    return { isLogin: false, offline: true };
   }
 }
 
@@ -883,6 +904,9 @@ ipcMain.handle('bili:fav-folders', async () => {
     const folders = await bili.favFolders(mid);
     return { ok: true, data: folders };
   } catch (err) {
+    if (err && err.code === -101) {
+      return { ok: false, needLogin: true, error: '登录已过期，重新扫码登录一下吧' };
+    }
     return { ok: false, error: err.message || '获取收藏夹失败' };
   }
 });
@@ -892,6 +916,9 @@ ipcMain.handle('bili:fav-list', async (_e, mediaId, pn) => {
     const res = await bili.favList(mediaId, Number(pn) || 1, 20);
     return { ok: true, data: res };
   } catch (err) {
+    if (err && err.code === -101) {
+      return { ok: false, needLogin: true, error: '登录已过期，重新扫码登录一下吧' };
+    }
     return { ok: false, error: err.message || '获取收藏内容失败' };
   }
 });

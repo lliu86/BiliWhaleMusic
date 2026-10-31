@@ -402,7 +402,13 @@ async function loadFolders(manual = false) {
     if (manual) toast('收藏夹已刷新');
   } else {
     state.favFolders = [];
-    toast(r.error || '获取收藏夹失败');
+    if (r.needLogin) {
+      state.auth = { isLogin: false };
+      updateAccountUI();
+      toast('登录已过期，重新扫码登录一下吧');
+    } else {
+      toast(r.error || '获取收藏夹失败');
+    }
   }
   if (state.favFolderId) await loadFavItems(1, false);
   else renderContent();
@@ -1092,6 +1098,9 @@ async function boot() {
   try {
     const auth = await bridge.authState();
     state.auth = auth || { isLogin: false };
+    if (auth && auth.offline && auth.isLogin) {
+      toast('网络不太稳定，先按已登录状态显示');
+    }
   } catch (_) {
     state.auth = { isLogin: false };
   }
