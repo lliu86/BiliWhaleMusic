@@ -26,6 +26,15 @@ const MIXIN_TAB = [
 
 const md5 = (s) => crypto.createHash('md5').update(s, 'utf8').digest('hex');
 
+const TIMEOUT_MS = 10000;
+
+/** fetch 统一超时：超时中止请求，避免接口挂住导致搜索/播放/登录卡死 */
+function fetchTimeout(url, opts = {}, timeoutMs = TIMEOUT_MS) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  return fetch(url, { ...opts, signal: ctrl.signal }).finally(() => clearTimeout(timer));
+}
+
 function mixinKey(orig) {
   return MIXIN_TAB.map((i) => orig[i]).join('').slice(0, 32);
 }
@@ -72,22 +81,37 @@ class BiliClient {
 
   async _json(url, { needWbi = false, params = {} } = {}) {
     await this.ready();
-    let finalUrl = url;
-    if (needWbi) {
-      finalUrl += (url.includes('?') ? '&' : '?') + this.sign(params);
+    const doFetch = async () => {
+      let finalUrl = url;
+      if (needWbi) {
+        finalUrl += (url.includes('?') ? '&' : '?') + this.sign(params);
+      }
+      const res = await fetchTimeout(finalUrl, {
+        headers: {
+          'User-Agent': UA,
+          Referer: REFERER,
+          Origin: 'https://www.bilibili.com',
+          'Accept-Language': 'zh-CN,zh;q=0.9',
+          Cookie: this.cookie,
+        },
+      });
+      this._absorbCookies(res);
+      if (!res.ok) throw new BiliError(res.status, `网络错误 HTTP ${res.status}`);
+      return res.json();
+    };
+    let j = await doFetch();
+    // 风控码统一处理：刷新票据后重试一次（-352 票据失效 / -412 请求被拦截）
+    if (j && (j.code === -352 || j.code === -412)) {
+      this._ready = null;
+      this.wbi = null;
+      try {
+        await this.ready();
+      } catch (_) {
+        /* 刷新失败就按原结果返回 */
+      }
+      j = await doFetch();
     }
-    const res = await fetch(finalUrl, {
-      headers: {
-        'User-Agent': UA,
-        Referer: REFERER,
-        Origin: 'https://www.bilibili.com',
-        'Accept-Language': 'zh-CN,zh;q=0.9',
-        Cookie: this.cookie,
-      },
-    });
-    this._absorbCookies(res);
-    if (!res.ok) throw new BiliError(res.status, `网络错误 HTTP ${res.status}`);
-    return res.json();
+    return j;
   }
 
   /** 首次调用：拿 buvid3、WBI key */
@@ -104,7 +128,7 @@ class BiliClient {
   async _bootstrap() {
     if (!/(^|;\s*)buvid3=/.test(this.cookie)) {
       try {
-        const res = await fetch('https://api.bilibili.com/x/frontend/finger/spi', {
+        const res = await fetchTimeout('https://api.bilibili.com/x/frontend/finger/spi', {
           headers: { 'User-Agent': UA, Referer: REFERER },
         });
         const j = await res.json();
@@ -121,7 +145,7 @@ class BiliClient {
   }
 
   async _refreshWbi() {
-    const res = await fetch('https://api.bilibili.com/x/web-interface/nav', {
+    const res = await fetchTimeout('https://api.bilibili.com/x/web-interface/nav', {
       headers: { 'User-Agent': UA, Referer: REFERER, Cookie: this.cookie },
     });
     const j = await res.json();
@@ -256,23 +280,13 @@ class BiliClient {
     };
   }
 
-  /** 取某分P的最佳音频流地址 */
+  /** 取某分P的最佳音频流地址（-352/-412 已在 _json 统一刷新重试） */
   async audioUrl(bvid, cid) {
     const params = { bvid, cid, fnval: 16, fnver: 0, fourk: 1 };
-    let j = await this._json('https://api.bilibili.com/x/player/wbi/playurl', {
+    const j = await this._json('https://api.bilibili.com/x/player/wbi/playurl', {
       needWbi: true,
       params,
     });
-    if (j.code === -352) {
-      // 风控：刷新一次票据再试
-      this._ready = null;
-      this.wbi = null;
-      await this.ready();
-      j = await this._json('https://api.bilibili.com/x/player/wbi/playurl', {
-        needWbi: true,
-        params,
-      });
-    }
     if (j.code !== 0) throw new BiliError(j.code, j.message || '获取播放地址失败');
     const dash = j.data?.dash;
     const audios = dash?.audio || [];

@@ -6,6 +6,7 @@
  */
 
 const https = require('https');
+const fs = require('fs');
 
 const UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
@@ -73,8 +74,34 @@ function splitPart(part) {
 }
 
 class LyricsClient {
-  constructor() {
+  constructor(cacheFile) {
     this.cache = new Map();
+    this.cacheFile = cacheFile || '';
+  }
+
+  /** 注入落盘缓存路径（app ready 后由主进程传入 userData 路径） */
+  setCacheFile(file) {
+    this.cacheFile = file || '';
+    if (!this.cacheFile) return;
+    try {
+      if (fs.existsSync(this.cacheFile)) {
+        const raw = JSON.parse(fs.readFileSync(this.cacheFile, 'utf8'));
+        for (const k of Object.keys(raw)) this.cache.set(k, raw[k]);
+      }
+    } catch (_) {
+      /* 缓存损坏就忽略，下次重建 */
+    }
+  }
+
+  _save() {
+    if (!this.cacheFile) return;
+    try {
+      const obj = {};
+      for (const [k, v] of this.cache) obj[k] = v;
+      fs.writeFileSync(this.cacheFile, JSON.stringify(obj));
+    } catch (_) {
+      /* 写失败不影响功能 */
+    }
   }
 
   async get({ song, artist, duration }) {
@@ -90,6 +117,7 @@ class LyricsClient {
       const first = this.cache.keys().next().value;
       this.cache.delete(first);
     }
+    this._save();
     return result;
   }
 

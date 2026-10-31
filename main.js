@@ -120,6 +120,8 @@ app.whenReady().then(() => {
   log('app ready, userData=', app.getPath('userData'));
   store = new Store(path.join(app.getPath('userData'), 'biuwhale.json'));
   bili.setCookie(store.get('cookie'));
+  // 歌词落盘缓存：重启后不再重复请求网易云
+  lyricClient.setCacheFile(path.join(app.getPath('userData'), 'lyrics-cache.json'));
 
   // 统一 UA + 媒体请求补 Referer，否则 B 站 CDN 会 403
   const ses = session.defaultSession;
@@ -811,29 +813,43 @@ function decodeDmXml(xml) {
   return out;
 }
 
+const DANMAKU_TIMEOUT_MS = 10000;
+
+function fetchDmXml(url) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), DANMAKU_TIMEOUT_MS);
+  return fetch(url, {
+    headers: { 'User-Agent': UA, Referer: 'https://www.bilibili.com/' },
+    signal: ctrl.signal,
+  }).finally(() => clearTimeout(timer));
+}
+
 ipcMain.handle('pet:danmaku', async (_e, bvid, cid) => {
   const key = String(cid || bvid || '');
   if (!key) return { ok: false };
   if (danmakuCache.has(key)) return { ok: true, list: danmakuCache.get(key) };
-  try {
-    const url = `https://api.bilibili.com/x/v1/dm/list.so?oid=${encodeURIComponent(cid || bvid)}`;
-    const res = await fetch(url, {
-      headers: {
-        'User-Agent': UA,
-        Referer: 'https://www.bilibili.com/',
-      },
-    });
-    if (!res.ok) return { ok: false };
-    const buf = Buffer.from(await res.arrayBuffer());
-    const xml = buf.toString('utf8');
-    const list = decodeDmXml(xml);
-    danmakuCache.set(key, list);
-    log('danmaku fetched', key, list.length);
-    return { ok: true, list };
-  } catch (err) {
-    log('danmaku error', err && err.message);
-    return { ok: false };
+  const oid = encodeURIComponent(cid || bvid);
+  // 双源：主用新版 dm/list.so，失败降级到老弹幕 CDN（同为 XML）
+  const urls = [
+    `https://api.bilibili.com/x/v1/dm/list.so?oid=${oid}`,
+    `https://comment.bilibili.com/${oid}.xml`,
+  ];
+  let list = [];
+  for (const url of urls) {
+    try {
+      const res = await fetchDmXml(url);
+      if (!res.ok) continue;
+      const buf = Buffer.from(await res.arrayBuffer());
+      list = decodeDmXml(buf.toString('utf8'));
+      if (list.length) break;
+    } catch (err) {
+      log('danmaku error', url, err && err.message);
+    }
   }
+  if (!list.length) return { ok: false };
+  danmakuCache.set(key, list);
+  log('danmaku fetched', key, list.length);
+  return { ok: true, list };
 });
 
 let lastLyricLine = '';
