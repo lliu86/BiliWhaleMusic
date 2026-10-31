@@ -294,9 +294,15 @@ class BiliClient {
     // 30280 > 30232 > 30216，优先高码率
     audios.sort((a, b) => (b.id || 0) - (a.id || 0));
     const best = audios[0];
+    const backupList = best.backupUrl || best.backup_url || [];
+    const primary = best.baseUrl || best.base_url;
+    // 去重后的候选源（主源优先，backup 兜底；baseUrl 为空时直接用 backup）
+    const urls = [...new Set([primary, ...backupList].filter(Boolean))].slice(0, 4);
+    if (!urls.length) throw new BiliError(-1, '该视频没有可用的音频流');
     return {
-      url: best.baseUrl || best.base_url,
-      backup: (best.backupUrl || best.backup_url || [])[0] || null,
+      url: urls[0],
+      backup: urls[1] || null,
+      urls,
       quality: best.id,
       bandwidth: best.bandwidth,
       mime: best.mimeType || best.mime_type,

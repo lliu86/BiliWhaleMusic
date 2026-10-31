@@ -544,13 +544,30 @@ async function playAt(index) {
     const song = state.current;
     const res = await bridge.audio(song.bvid, song.cid);
     if (!res.ok) throw new Error(res.error);
-    audio.src = res.data.url;
-    audio.volume = state.volume;
-    await audio.play();
+    // 多源重试：主源失效时依次尝试 backup，避免“no supported source”直接失败
+    const urls = (res.data.urls && res.data.urls.length)
+      ? res.data.urls
+      : [res.data.url].filter(Boolean);
+    if (!urls.length) throw new Error('该视频没有可用的音源');
+    let lastErr = null;
+    for (const u of urls) {
+      audio.src = u;
+      audio.volume = state.volume;
+      try {
+        await audio.play();
+        lastErr = null;
+        break;
+      } catch (e) {
+        lastErr = e;
+        audio.removeAttribute('src');
+        audio.load();
+      }
+    }
+    if (lastErr) throw lastErr;
     toast(`正在播放：${res.data.quality === 30280 ? '192K' : res.data.quality === 30232 ? '132K' : '64K'} 音质`);
   } catch (err) {
     toast('播放失败：' + (err.message || '未知错误'));
-    setTimeout(() => next(true), 900);
+    jumpNext();
   }
 }
 
@@ -714,6 +731,17 @@ function togglePlay() {
   }
   if (audio.paused) audio.play().catch(() => {});
   else audio.pause();
+}
+
+/* 播放失败跳转：play() 的 catch 与 audio error 事件可能同时触发，防跳两首 */
+let failJumping = false;
+function jumpNext() {
+  if (failJumping) return;
+  failJumping = true;
+  setTimeout(() => {
+    failJumping = false;
+    next(true);
+  }, 900);
 }
 
 function next(auto = false) {
@@ -1049,7 +1077,12 @@ function bind() {
   audio.addEventListener('loadedmetadata', updateProgress);
   audio.addEventListener('ended', () => next(true));
   audio.addEventListener('error', () => {
-    if (audio.src) toast('音频加载失败，自动跳下一首');
+    if (audio.src) {
+      const ec = audio.error ? audio.error.code : '?';
+      console.log('audio error, code=', ec, 'src=', String(audio.src).slice(0, 120));
+      toast('音频加载失败，自动跳下一首');
+      jumpNext();
+    }
   });
 
   window.addEventListener('beforeunload', saveListen);
