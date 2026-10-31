@@ -515,10 +515,21 @@ function createPlayer() {
   });
 
   playerWin.on('close', (e) => {
-    if (!quitting) {
+    if (quitting) return;
+    // 默认：关窗口 = 退出应用（含桌宠）；只有显式勾选才收进托盘
+    if (store.get('closeToTray') === true) {
       e.preventDefault();
       playerWin.hide();
+      return;
     }
+    e.preventDefault();
+    quitting = true;
+    // 直接销毁窗口，避免 close/before-quit 互相等待导致进程留在后台
+    if (petWin && !petWin.isDestroyed()) petWin.destroy();
+    for (const w of BrowserWindow.getAllWindows()) {
+      if (!w.isDestroyed()) w.destroy();
+    }
+    app.exit(0);
   });
 
   playerWin.on('closed', () => {
@@ -1106,6 +1117,9 @@ ipcMain.handle('settings:apply', (_e, patch) => {
   if (typeof patch.petAlwaysOnTop === 'boolean') {
     store.set('petAlwaysOnTop', patch.petAlwaysOnTop);
     if (petWin) petWin.setAlwaysOnTop(patch.petAlwaysOnTop, 'floating');
+  }
+  if (typeof patch.closeToTray === 'boolean') {
+    store.set('closeToTray', patch.closeToTray);
   }
   if (typeof patch.showPet === 'boolean') {
     store.set('showPet', patch.showPet);

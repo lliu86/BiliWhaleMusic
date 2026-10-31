@@ -24,7 +24,7 @@ const state = {
   current: null,
   lyrics: { key: '', lines: [], active: -1, loading: false, source: '' },
   listen: { total: 0, today: 0, date: '', lastPos: 0, lastSave: 0 },
-  settings: { petScale: 1, petAlwaysOnTop: true, showPet: true },
+  settings: { petScale: 1, petAlwaysOnTop: true, showPet: true, closeToTray: false },
   lastSync: 0,
   auth: { isLogin: false },
   favFolders: [],
@@ -817,6 +817,7 @@ function openSettings() {
   $('#volVal').textContent = Math.round(state.volume * 100) + '%';
   $('#swTop').classList.toggle('on', s.petAlwaysOnTop !== false);
   $('#swShowPet').classList.toggle('on', s.showPet !== false);
+  $('#swCloseTray').classList.toggle('on', s.closeToTray === true);
   $('#settingsModal').classList.add('open');
 }
 
@@ -831,6 +832,7 @@ async function saveSettings() {
     petScale: scale,
     petAlwaysOnTop: $('#swTop').classList.contains('on'),
     showPet: $('#swShowPet').classList.contains('on'),
+    closeToTray: $('#swCloseTray').classList.contains('on'),
   };
   const res = await bridge.applySettings(patch);
   if (res && res.ok === false) {
@@ -1088,6 +1090,7 @@ async function boot() {
   state.settings = {
     petScale: saved.petScale || 1,
     petAlwaysOnTop: saved.petAlwaysOnTop !== false,
+    closeToTray: saved.closeToTray === true,
     showPet: saved.showPet !== false,
   };
   const today = localDate();

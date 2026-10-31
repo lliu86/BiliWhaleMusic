@@ -10,6 +10,7 @@ const DEFAULTS = {
   mode: 'order',
   petScale: 1,
   petAlwaysOnTop: true,
+  closeToTray: false,
   showPet: true,
   quality: 'high',
   listenTotal: 0,
