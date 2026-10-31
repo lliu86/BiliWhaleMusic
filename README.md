@@ -91,30 +91,35 @@ npm start
 
 ## 打包（安装包）
 
-```bash
-npm install
-npm run dist        # 输出 Windows NSIS 安装包到 dist/
+推荐直接用项目里的脚本（构建目录固定 `D:\biuwhale-build`，纯英文 + D 盘）：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\build-installer.ps1
+# 或者双击 打包.cmd
 ```
+
+它会自动：复制源码到 `D:\biuwhale-build` → 用 `mklink /J` 复用现有 `node_modules`
+→ 调 `electron-builder --win nsis` → 产物拷回 `dist\` → 清理构建目录。
+临时文件也会指到 `D:\temp`，不往 C 盘写。
 
 > 安装包未做代码签名，首次运行 Windows 会弹 SmartScreen「已保护你的电脑」，
 > 点「更多信息 → 仍要运行」即可；企业分发请自行签名。
 >
-> ⚠️ **需要在纯英文路径下打包**（如 `C:\biuwhale-build`）：项目路径含中文时
-> NSIS 会报 "Error writing temporary file"（makensis 对非 ASCII 路径支持不佳）。
-> 不想重新装依赖的话，用目录联接把 `node_modules` 指回来即可：
+> ⚠️ **构建目录必须是纯英文路径**：项目路径含中文时 NSIS 会报
+> "Error writing temporary file" 或 NSIS Error。手动写法：
 >
 > ```bat
-> mklink /J C:\biuwhale-build\node_modules "D:\path\to\BiuWhale\node_modules"
-> cd C:\biuwhale-build && npx electron-builder --win nsis
+> mklink /J D:\biuwhale-build\node_modules "D:\Users\lenovo\Desktop\豆包对话\BiuWhale\node_modules"
+> cd /d D:\biuwhale-build && node_modules\.bin\electron-builder.cmd --win nsis
 > ```
 >
+> 安装包本身也要放在英文路径下双击执行，否则同样会弹 NSIS Error。
 > 打包复用本地已安装的 Electron（`build.electronDist` 配置），首次构建若网络受限
 > 请配置镜像源：
 >
 > ```powershell
 > $env:ELECTRON_MIRROR="https://npmmirror.com/mirrors/electron/"
 > $env:ELECTRON_BUILDER_BINARIES_MIRROR="https://npmmirror.com/mirrors/electron-builder-binaries/"
-> npm run dist
 > ```
 
 ## 目录结构
