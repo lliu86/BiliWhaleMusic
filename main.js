@@ -19,13 +19,24 @@ const { BiliClient } = require('./src/bili');
 const { LyricsClient } = require('./src/lyrics');
 const { Store } = require('./src/store');
 
-// 开发时日志与截图写在项目目录；打包后落在 userData（asar 内只读）
+// 开发时日志与截图写在项目目录；打包后（asar 只读）落到 userData。
+// 用「能不能在 __dirname 写文件」来判断，比 app.isPackaged 稳（改名后的 runtime 也能正确落盘）。
+let cachedDataDir = null;
 function dataDir() {
+  if (cachedDataDir) return cachedDataDir;
   try {
-    return app.isPackaged ? app.getPath('userData') : __dirname;
+    const probe = path.join(__dirname, '.write-probe');
+    fs.writeFileSync(probe, '1');
+    fs.unlinkSync(probe);
+    cachedDataDir = __dirname;
   } catch (_) {
-    return __dirname;
+    try {
+      cachedDataDir = app.getPath('userData');
+    } catch (_2) {
+      cachedDataDir = os.tmpdir();
+    }
   }
+  return cachedDataDir;
 }
 function log(...args) {
   try {
