@@ -432,8 +432,21 @@ app.on('before-quit', () => {
 /* 窗口                                                                */
 /* ------------------------------------------------------------------ */
 
+/** 主屏可用区域，换算成窗口坐标（DIP）；高分屏下 Electron 给的 workArea 可能是物理像素 */
+function workAreaDip() {
+  const d = screen.getPrimaryDisplay();
+  const s = d.scaleFactor || 1;
+  const wa = d.workArea;
+  return {
+    x: Math.round(wa.x / s),
+    y: Math.round(wa.y / s),
+    width: Math.round(wa.width / s),
+    height: Math.round(wa.height / s),
+  };
+}
+
 function createPlayer() {
-  const area = screen.getPrimaryDisplay().workArea;
+  const area = workAreaDip();
   // 记住上次的窗口大小/位置；首次启动给一个更宽的默认值
   const saved = store.get('winBounds');
   let width = 640;
@@ -495,11 +508,11 @@ function createPlayer() {
   playerWin.once('ready-to-show', () => {
     log('displays', JSON.stringify(screen.getAllDisplays().map((d) => ({ b: d.bounds, w: d.workArea, s: d.scaleFactor }))));
     log('player bounds before center', JSON.stringify(playerWin.getBounds()));
-    playerWin.center();
     const pb = playerWin.getBounds();
-    const wa = screen.getPrimaryDisplay().workArea;
-    const px = Math.min(Math.max(pb.x, wa.x), wa.x + wa.width - pb.width);
-    const py = Math.min(Math.max(pb.y, wa.y), wa.y + wa.height - pb.height);
+    const wa = workAreaDip();
+    // 自己算居中：高分屏下 Electron 的 center() 会按错误的屏幕尺寸偏移
+    const px = Math.max(wa.x, Math.round(wa.x + (wa.width - pb.width) / 2));
+    const py = Math.max(wa.y, Math.round(wa.y + (wa.height - pb.height) / 2));
     playerWin.setBounds({ x: px, y: py, width: pb.width, height: pb.height });
     log('player bounds after center', JSON.stringify(playerWin.getBounds()));
     playerWin.show();
@@ -523,13 +536,22 @@ function createPet() {
   pet.scale = scale;
   const w = Math.round((PET_W + PET_PANEL_W) * scale);
   const h = Math.round(PET_H * scale);
-  const area = screen.getPrimaryDisplay().workArea;
+  const area = workAreaDip();
 
   // 默认停在右下角（和 DSH 里的挂件一致），之后记住拖动后的位置
   const saved = store.get('petPos');
   const margin = 24;
-  pet.x = saved && Number.isFinite(saved.x) ? saved.x : area.x + area.width - w - margin;
-  pet.y = saved && Number.isFinite(saved.y) ? saved.y : area.y + area.height - h - margin;
+  // 分辨率/缩放变化后旧的坐标可能已经跑到屏外，创建时就夹一次
+  const minX = area.x + Math.round(PET_W * scale) - w;
+  const maxX = area.x + area.width - w;
+  const maxY = area.y + area.height - h;
+  const clamp = (v, lo, hi) => Math.min(Math.max(v, lo), Math.max(lo, hi));
+  pet.x = saved && Number.isFinite(saved.x)
+    ? clamp(saved.x, minX, maxX)
+    : area.x + area.width - w - margin;
+  pet.y = saved && Number.isFinite(saved.y)
+    ? clamp(saved.y, area.y, maxY)
+    : area.y + area.height - h - margin;
 
   petWin = new BrowserWindow({
     width: w,
@@ -679,7 +701,7 @@ function petSize() {
 function clampPetBounds() {
   if (!petWin || petWin.isDestroyed()) return;
   const b = petWin.getBounds();
-  const wa = screen.getPrimaryDisplay().workArea;
+  const wa = workAreaDip();
   const whaleW = Math.round(PET_W * pet.scale);
   // 鲸鱼本体必须完整可见；组件面板允许移出屏幕
   const minX = wa.x + whaleW - b.width;
