@@ -59,6 +59,7 @@ const PET_H = 420;
 
 let playerWin = null;
 let petWin = null;
+let currentBvid = '';
 let tray = null;
 let quitting = false;
 
@@ -137,7 +138,10 @@ app.whenReady().then(() => {
     },
     (details, callback) => {
       const headers = details.requestHeaders;
-      headers['Referer'] = 'https://www.bilibili.com/';
+      // 防盗链：优先用当前播放视频页的精确 Referer，未知时回退站点首页
+      headers['Referer'] = currentBvid
+        ? `https://www.bilibili.com/video/${currentBvid}`
+        : 'https://www.bilibili.com/';
       headers['Origin'] = 'https://www.bilibili.com';
       headers['User-Agent'] = UA;
       callback({ requestHeaders: headers });
@@ -889,9 +893,18 @@ ipcMain.handle('bili:resolve', async (_e, bvid) => {
 
 ipcMain.handle('bili:audio', async (_e, bvid, cid) => {
   try {
+    currentBvid = String(bvid || '');
     return { ok: true, data: await bili.audioUrl(bvid, cid) };
   } catch (err) {
     return { ok: false, error: err.message || '获取音频流失败', code: err.code };
+  }
+});
+
+/* 播放器实时节拍（低频能量 + 脉冲）转发给桌宠，驱动律动 */
+ipcMain.on('player:beat', (_e, beat) => {
+  if (!beat) return;
+  if (petWin && !petWin.isDestroyed() && petWin.webContents) {
+    petWin.webContents.send('pet:beat', beat);
   }
 });
 

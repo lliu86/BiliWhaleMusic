@@ -18,5 +18,6 @@ contextBridge.exposeInMainWorld('petAPI', {
   onScale: (cb) => ipcRenderer.on('pet:scale', (_e, scale) => cb(scale)),
   danmaku: (bvid, cid) => ipcRenderer.invoke('pet:danmaku', bvid, cid),
   onLyricLine: (cb) => ipcRenderer.on('lyric:line', (_e, text) => cb(text)),
+  onBeat: (cb) => ipcRenderer.on('pet:beat', (_e, v) => cb(v)),
   onFlashback: (cb) => ipcRenderer.on('pet:flashback', (_e, data) => cb(data)),
 });

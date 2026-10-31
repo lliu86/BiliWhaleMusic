@@ -72,14 +72,21 @@
     60% { transform: translateY(-10px) scale(1.02); }
   }
   @keyframes twirl { to { transform: rotate(360deg); } }
+  /* 鼓点脉冲：节拍到来时鲸鱼弹跳一下 */
+  @keyframes beatPulse {
+    0% { transform: translateY(0) rotate(0deg) scale(1.06); }
+    60% { transform: translateY(-10px) rotate(0deg) scale(1.04); }
+    100% { transform: translateY(0) rotate(0deg) scale(1); }
+  }
 
   body.action-idle #whale { animation: float 3.4s ease-in-out infinite; }
-  body.action-dance #whale { animation: dance 0.5s ease-in-out infinite alternate; }
-  body.mood-hype.action-dance #whale { animation: dance-hype 0.28s ease-in-out infinite alternate; }
-  body.mood-chill.action-dance #whale { animation: dance-chill 1.2s ease-in-out infinite alternate; }
-  body.mood-happy.action-dance #whale { animation: bounce-happy 0.9s ease-in-out infinite; }
+  body.action-dance #whale { animation: dance var(--dance-dur, 0.5s) ease-in-out infinite alternate; }
+  body.mood-hype.action-dance #whale { animation: dance-hype var(--dance-dur, 0.28s) ease-in-out infinite alternate; }
+  body.mood-chill.action-dance #whale { animation: dance-chill var(--dance-dur, 1.2s) ease-in-out infinite alternate; }
+  body.mood-happy.action-dance #whale { animation: bounce-happy var(--dance-dur, 0.9s) ease-in-out infinite; }
   body.action-twirl #whale { animation: twirl 0.6s ease; }
   body.action-drag #whale { transform: rotate(-7deg) scale(1.04); }
+  body.beat #whale { animation: beatPulse 0.16s ease-out !important; }
 
   #whaleShadow {
     position: absolute;

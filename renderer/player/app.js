@@ -7,6 +7,7 @@ const songAlbum = (item) => (item && (item.album && item.album !== item.song ? i
 
 const audio = new Audio();
 audio.preload = 'auto';
+audio.crossOrigin = 'anonymous'; // 节拍分析需 CORS 读取音频数据（B站 CDN 带 Access-Control-Allow-Origin: *）
 
 const state = {
   view: 'search',
@@ -499,6 +500,52 @@ function toggleFav(item) {
   updateFavButton();
 }
 
+/* ---------------- 实时节拍检测（Web Audio，驱动桌宠律动） ---------------- */
+
+let beatCtx = null;
+let beatSrc = null;
+let beatAna = null;
+let beatAvg = 0;
+let beatPrev = 0;
+let beatBuf = null;
+
+function initBeat() {
+  if (beatSrc) return;
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return;
+  try {
+    beatCtx = new AC();
+    beatSrc = beatCtx.createMediaElementSource(audio);
+    beatAna = beatCtx.createAnalyser();
+    beatAna.fftSize = 512;
+    beatAna.smoothingTimeConstant = 0.3;
+    beatSrc.connect(beatAna);
+    beatAna.connect(beatCtx.destination); // 必须接回输出，否则会静音
+    setInterval(beatTick, 100);
+  } catch (e) {
+    console.log('beat init failed:', e && e.message);
+  }
+}
+
+function beatTick() {
+  if (!beatAna || !state.playing || !state.current) return;
+  if (!beatBuf || beatBuf.length !== beatAna.frequencyBinCount) {
+    beatBuf = new Uint8Array(beatAna.frequencyBinCount);
+  }
+  beatAna.getByteFrequencyData(beatBuf);
+  // 低频区（鼓点/贝斯 ≈ 40-520Hz）：fftSize=512 时 bin1≈86Hz、bin6≈517Hz
+  let low = 0;
+  for (let i = 1; i < 7; i++) low += beatBuf[i];
+  low /= 6;
+  beatAvg = beatAvg * 0.85 + low * 0.15;
+  const beat = low > beatAvg * 1.22 && low > beatPrev * 1.12;
+  beatPrev = low;
+  const level = Math.min(1, low / 170);
+  if (window.api && window.api.sendBeat) {
+    window.api.sendBeat({ level: Number(level.toFixed(3)), beat: !!beat });
+  }
+}
+
 async function playAt(index) {
   if (index < 0 || index >= state.queue.length) return;
   const item = state.queue[index];
@@ -564,6 +611,8 @@ async function playAt(index) {
       }
     }
     if (lastErr) throw lastErr;
+    initBeat();
+    if (beatCtx && beatCtx.state === 'suspended') beatCtx.resume().catch(() => {});
     toast(`正在播放：${res.data.quality === 30280 ? '192K' : res.data.quality === 30232 ? '132K' : '64K'} 音质`);
   } catch (err) {
     toast('播放失败：' + (err.message || '未知错误'));

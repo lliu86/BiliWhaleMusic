@@ -122,6 +122,21 @@ window.petAPI.onPlayback((state) => {
   }
 });
 
+/* 实时节拍：强度驱动摇摆速度（--dance-dur），鼓点触发脉冲弹跳 */
+let beatPulseTimer = null;
+window.petAPI.onBeat((v) => {
+  if (!v) return;
+  const level = Math.max(0, Math.min(1, Number(v.level) || 0));
+  // 强度 0 → 1.2s（舒缓），强度 1 → 0.3s（劲爆）
+  const dur = (1.2 - level * 0.9).toFixed(2) + 's';
+  document.body.style.setProperty('--dance-dur', dur);
+  if (v.beat && playing) {
+    document.body.classList.add('beat');
+    clearTimeout(beatPulseTimer);
+    beatPulseTimer = setTimeout(() => document.body.classList.remove('beat'), 170);
+  }
+});
+
 /* 弹幕氛围：切歌时挑一条真实弹幕吐槽 */
 let lastDanmakuKey = '';
 function requestDanmaku(state) {
