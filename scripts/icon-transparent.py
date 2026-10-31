@@ -14,12 +14,29 @@ cut = src.crop((int(w * 0.05), int(h * 0.03), int(w * 0.97), int(h * 0.82)))
 cut = cut.crop(cut.getbbox())
 print('cut', cut.size)
 
-def make(S, ratio=0.92):
+def make(S, ratio=0.92, fade=0.12):
     img = Image.new('RGBA', (S, S), (0, 0, 0, 0))
     box = S * ratio
     sc = box / max(cut.width, cut.height)
     im = cut.resize((max(1, round(cut.width * sc)), max(1, round(cut.height * sc))), Image.LANCZOS)
     img.alpha_composite(im, ((S - im.width) // 2, (S - im.height) // 2))
+
+    # 底部 alpha 渐隐：在角色本体高度的最后 `fade` 比例内线性淡出到 0
+    bottom = (S + im.height) // 2
+    span = max(2, int(im.height * fade))
+    start = bottom - span
+    a = img.getchannel('A')
+    px = a.load()
+    for y in range(max(0, start), min(S, bottom)):
+        t = (y - start) / span           # 0 -> 1
+        k = 1.0 - t
+        k = k * k * (3 - 2 * k)          # smoothstep，过渡更自然
+        f = int(255 * k)
+        for x in range(S):
+            v = px[x, y]
+            if v:
+                px[x, y] = v * f // 255
+    img.putalpha(a)
     return img
 
 make(256).save(os.path.join(ASSETS, 'icon.png'))
