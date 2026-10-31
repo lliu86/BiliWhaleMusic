@@ -1131,14 +1131,26 @@ ipcMain.on('pet:drag-start', (_e, point) => {
   petWin.webContents.send('pet:action', 'drag');
   petWin.setIgnoreMouseEvents(false);
   const [wx, wy] = petWin.getPosition();
-  pet.dragOffset = { x: point.x - wx, y: point.y - wy };
+  const s = screen.getPrimaryDisplay().scaleFactor || 1;
+  // 光标坐标是物理像素、窗口坐标是 DIP，拖动前统一换算
+  const p0x = point.x / s;
+  const p0y = point.y / s;
+  pet.dragOffset = { x: p0x - wx, y: p0y - wy };
   clearInterval(pet.dragTimer);
   pet.dragTimer = setInterval(() => {
     if (!pet.dragging || !petWin || petWin.isDestroyed()) return;
     const c = screen.getCursorScreenPoint();
-    pet.x = c.x - pet.dragOffset.x;
-    pet.y = c.y - pet.dragOffset.y;
-    petWin.setPosition(Math.round(pet.x), Math.round(pet.y));
+    pet.x = c.x / s - pet.dragOffset.x;
+    pet.y = c.y / s - pet.dragOffset.y;
+    const wa = workAreaDip();
+    const b = petWin.getBounds();
+    const minX = wa.x + Math.round(PET_W * (pet.scale || 1)) - b.width;
+    const maxX = wa.x + wa.width - b.width;
+    const nx = Math.min(Math.max(pet.x, Math.min(minX, maxX)), maxX);
+    const ny = Math.min(Math.max(pet.y, wa.y), wa.y + wa.height - b.height);
+    pet.x = nx;
+    pet.y = ny;
+    petWin.setPosition(Math.round(nx), Math.round(ny));
   }, 16);
 });
 
