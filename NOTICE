@@ -1,0 +1,63 @@
+# NOTICE
+
+This file records the third-party software, assets and design ideas used by
+the BiuWhale project, and the license boundaries that apply when this project
+is distributed or used commercially.
+
+BiuWhale itself is released under the MIT License (see LICENSE). The license
+terms below apply to the respective third-party components.
+
+---
+
+## 1. Biu — Bilibili audio client (design and implementation reference)
+
+- Source: https://github.com/wood3n/biu (Electron + React)
+- License: **PolyForm Noncommercial 1.0.0**
+
+BiuWhale independently implements its Bilibili integration (WBI signing,
+search, video detail, DASH audio stream parsing, player interaction model)
+with reference to Biu's design. The PolyForm Noncommercial License permits
+non-commercial use only. **Commercial use of code or design derived from Biu
+requires permission from the original author.** If you intend to distribute or
+sell BiuWhale, or use it in a commercial product, you must obtain such
+permission first.
+
+## 2. dsh-whale-widget — whale mascot assets and speech-bubble style
+
+- Source: https://github.com/MeteorNOX/DeepSeek-Balance-Whale-Widget (DSH Web plugin)
+- License: MIT
+- Copyright (c) 2026 MeteorNOX
+
+BiuWhale uses `DSniang1.png`, `DSniang02.png` and `rua.gif` from this project,
+and recreates its speech-bubble visual style. The license text is distributed
+with the assets in `assets/whale/LICENSE-dsh-whale-widget.txt`.
+
+## 3. ANeko — desktop-pet interaction habits (behavioral reference only)
+
+- Source: https://github.com/pass-with-high-score/ANeko (Android + Compose)
+- License: LGPL-2.1
+
+BiuWhale only borrows behavioral conventions (dragging, context menu,
+always-on-top widget window) and does not port ANeko code. If ANeko code is
+ever ported into this project, the corresponding modifications must be
+released under an LGPL-compatible license.
+
+## 4. DesktopFriends — product form reference (no code or models used)
+
+- Source: https://github.com/Tosuke-sama/DesktopFriends (Tauri + Vue + Live2D)
+- License: declared MIT in package.json, but the repository contains no
+  LICENSE file; Live2D Cubism Core and sample models are separately licensed.
+
+BiuWhale references the "desktop companion" product form (transparent
+always-on-top window, playback-state linkage, Live2D slot). No code or models
+from this project are used.
+
+---
+
+## Distribution notes
+
+- The bundled runtime in `runtime/` is an unpackaged Electron distribution
+  used for portable launches; it is excluded from the packaged installer
+  produced by electron-builder.
+- Bilibili web endpoints are public and may change at any time; this project
+  is for personal study and non-commercial use.

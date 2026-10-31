@@ -1,0 +1,326 @@
+'use strict';
+
+/* 鲸音 BiuWhale 桌宠 —— DeepSeek 小鲸鱼
+   形象与气泡风格来自 dsh-whale-widget（MIT，Copyright (c) 2026 MeteorNOX）。
+   桌面版行为：固定在原地漂浮，不自己走动；可以拖动；播放音乐时摇摆。 */
+
+const stage = document.getElementById('stage');
+const whale = document.getElementById('whale');
+const bubble = document.getElementById('bubble');
+const bubbleText = document.getElementById('bubbleText');
+const petpet = document.getElementById('petpet');
+
+const params = new URLSearchParams(location.search);
+let scale = Number(params.get('scale')) || 1;
+document.documentElement.style.setProperty('--s', String(scale));
+
+let bubbleTimer = null;
+let lastTitle = '';
+let lastArtist = '';
+let playing = false;
+
+function setAction(a) {
+  for (const name of ['idle', 'dance', 'drag']) {
+    document.body.classList.toggle('action-' + name, a === name);
+  }
+}
+
+function say(text, ms = 4200) {
+  bubbleText.textContent = text;
+  bubble.classList.add('show');
+  clearTimeout(bubbleTimer);
+  bubbleTimer = setTimeout(() => bubble.classList.remove('show'), ms);
+}
+
+/* ---------------- 与主进程联动 ---------------- */
+
+window.petAPI.onAction((a) => {
+  // 拖动结束后回到当前播放状态对应的动作
+  if (a === 'idle') setAction(playing ? 'dance' : 'idle');
+  else setAction(a);
+});
+
+const pNextGroup = document.getElementById('pNextGroup');
+
+function fmtListen(sec) {
+  const s = Math.max(0, Math.round(Number(sec) || 0));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  if (h > 0) return h + 'h ' + m + 'm';
+  if (m > 0) return m + 'm';
+  return s + 's';
+}
+
+window.petAPI.onPlayback((state) => {
+  const changed = state.title && state.title !== lastTitle;
+  if (state.title) lastTitle = state.title;
+  if (state.artist) lastArtist = state.artist;
+  playing = !!state.playing;
+
+  if (playing) setAction('dance');
+  else setAction('idle');
+
+  updatePlayIcon();
+  if (nowTitle) nowTitle.textContent = state.title || '未在播放';
+  if (pNextGroup) pNextGroup.style.display = state.hasGroup ? '' : 'none';
+  if (changed) say('♪ ' + state.title);
+});
+
+window.petAPI.onScale((s) => {
+  scale = s;
+  document.documentElement.style.setProperty('--s', String(s));
+});
+
+window.petAPI.onStats((st) => renderStats(st));
+
+/* ---------------- 面板里的播放控制 ---------------- */
+
+const hearts = document.getElementById('hearts');
+const icoPlay = document.getElementById('pIcoPlay');
+const icoPause = document.getElementById('pIcoPause');
+const nowTitle = document.getElementById('nowTitle');
+
+function updatePlayIcon() {
+  if (!icoPlay || !icoPause) return;
+  icoPlay.style.display = playing ? 'none' : 'block';
+  icoPause.style.display = playing ? 'block' : 'none';
+}
+
+function bindControl(id, cmd) {
+  const btn = document.getElementById(id);
+  if (!btn) return;
+  btn.addEventListener('pointerdown', (e) => e.stopPropagation());
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    window.petAPI.command(cmd);
+    if (cmd === 'toggle') {
+      playing = !playing;
+      updatePlayIcon();
+    }
+  });
+}
+bindControl('pPrev', 'prev');
+bindControl('pPlay', 'toggle');
+bindControl('pNext', 'next');
+bindControl('pNextGroup', 'next-group');
+
+/* ---------------- 组件面板（时钟 / 系统 / 番茄钟） ---------------- */
+
+const panel = document.getElementById('panel');
+const widgetBtn = document.getElementById('widgetBtn');
+
+function setPanel(open) {
+  panel.classList.toggle('hide', !open);
+  widgetBtn.title = open ? '收起组件' : '组件';
+}
+
+widgetBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
+widgetBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  const open = panel.classList.contains('hide');
+  setPanel(open);
+  window.petAPI.panel(open);
+  hideControls();
+});
+
+window.petAPI.onPanel((open) => setPanel(!!open));
+
+// 单击鲸鱼 = 展开/收起面板（控制条搬进面板后不再单独弹出）
+function showControls() {
+  if (panel.classList.contains('hide')) {
+    setPanel(true);
+    window.petAPI.panel(true);
+  }
+}
+function hideControls() {}
+
+/* 时钟 */
+const clockTime = document.getElementById('clockTime');
+const clockDate = document.getElementById('clockDate');
+const WEEK = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+function tickClock() {
+  const d = new Date();
+  clockTime.textContent = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  clockDate.textContent = `${d.getMonth() + 1} 月 ${d.getDate()} 日 · ${WEEK[d.getDay()]}`;
+}
+tickClock();
+setInterval(tickClock, 1000);
+
+/* 系统状态 */
+const cpuVal = document.getElementById('cpuVal');
+const memVal = document.getElementById('memVal');
+const cpuBar = document.getElementById('cpuBar');
+const memBar = document.getElementById('memBar');
+function renderStats(st) {
+  if (!st) return;
+  const cpu = Math.round((st.cpu || 0) * 100);
+  const mem = Math.round((st.mem || 0) * 100);
+  cpuVal.textContent = cpu + '%';
+  memVal.textContent = `${st.memUsedGB.toFixed(1)} / ${st.memTotalGB.toFixed(0)}G`;
+  cpuBar.style.width = cpu + '%';
+  memBar.style.width = mem + '%';
+  const listenEl = document.getElementById('listenVal');
+  if (listenEl) listenEl.textContent = fmtListen(st.listen);
+  cpuBar.classList.toggle('hot', cpu >= 80);
+  memBar.classList.toggle('hot', mem >= 88);
+}
+
+/* 番茄钟 */
+const timerVal = document.getElementById('timerVal');
+const timerToggle = document.getElementById('timerToggle');
+const timerReset = document.getElementById('timerReset');
+const FOCUS_SEC = 25 * 60;
+let remain = FOCUS_SEC;
+let running = false;
+let ticker = null;
+
+function renderTimer() {
+  const m = Math.floor(remain / 60);
+  const sec = remain % 60;
+  timerVal.textContent = `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+  timerToggle.textContent = running ? '暂停' : '开始';
+  document.title = running ? `${timerVal.textContent} · 专注中` : 'BiuWhale Pet';
+}
+function stopTicker() {
+  clearInterval(ticker);
+  ticker = null;
+}
+timerToggle.addEventListener('click', () => {
+  running = !running;
+  stopTicker();
+  if (running) {
+    ticker = setInterval(() => {
+      remain -= 1;
+      if (remain <= 0) {
+        remain = 0;
+        running = false;
+        stopTicker();
+        say('时间到，休息一下～', 5000);
+      }
+      renderTimer();
+    }, 1000);
+  }
+  renderTimer();
+});
+timerReset.addEventListener('click', () => {
+  running = false;
+  stopTicker();
+  remain = FOCUS_SEC;
+  renderTimer();
+});
+renderTimer();
+
+/* ---------------- 摸头 ---------------- */
+
+function pat() {
+  hideControls();
+  petpet.classList.add('show');
+  setTimeout(() => petpet.classList.remove('show'), 1100);
+
+  hearts.innerHTML = '';
+  for (let i = 0; i < 6; i++) {
+    const h = document.createElement('i');
+    h.textContent = ['♥', '♡'][i % 2];
+    h.style.left = 40 + Math.random() * 60 + '%';
+    h.style.setProperty('--dx', (Math.random() * 40 - 20).toFixed(0) + 'px');
+    h.style.animationDelay = (i * 0.07).toFixed(2) + 's';
+    h.style.fontSize = 11 + Math.random() * 7 + 'px';
+    hearts.appendChild(h);
+  }
+  setTimeout(() => (hearts.innerHTML = ''), 1400);
+
+  say(['rua～', '好舒服…', '再摸一下嘛', '喵？不对，呜～'][Math.floor(Math.random() * 4)], 1800);
+}
+
+/* ---------------- 鼠标交互 ---------------- */
+
+let downPoint = null;
+let dragging = false;
+let hover = false;
+let clickCount = 0;
+let clickTimer = null;
+
+function inside(x, y) {
+  const r = whale.getBoundingClientRect();
+  if (x >= r.left - 6 && x <= r.right + 6 && y >= r.top - 6 && y <= r.bottom + 6) return true;
+  const wb = widgetBtn.getBoundingClientRect();
+  if (x >= wb.left - 3 && x <= wb.right + 3 && y >= wb.top - 3 && y <= wb.bottom + 3) return true;
+  if (!panel.classList.contains('hide')) {
+    const p = panel.getBoundingClientRect();
+    if (x >= p.left - 4 && x <= p.right + 4 && y >= p.top - 4 && y <= p.bottom + 4) return true;
+  }
+  return false;
+}
+
+function onTap() {
+  clickCount += 1;
+  if (clickCount === 1) {
+    // 等 260ms 看是不是双击
+    clickTimer = setTimeout(() => {
+      clickCount = 0;
+      showControls();
+    }, 260);
+  } else {
+    clearTimeout(clickTimer);
+    clickCount = 0;
+    pat();
+  }
+}
+
+document.addEventListener('mousemove', (e) => {
+  const isIn = inside(e.clientX, e.clientY);
+  if (isIn !== hover) {
+    hover = isIn;
+    window.petAPI.setInteractive(isIn);
+  }
+  document.body.style.cursor = isIn ? 'grab' : 'default';
+});
+
+document.addEventListener('mouseleave', () => {
+  if (!hover) return;
+  hover = false;
+  window.petAPI.setInteractive(false);
+});
+
+stage.addEventListener('pointerdown', (e) => {
+  if (e.button !== 0) return;
+  if (e.target.closest('#panel, #widgetBtn')) return;
+  downPoint = { x: e.clientX, y: e.clientY };
+  dragging = false;
+  stage.setPointerCapture(e.pointerId);
+});
+
+stage.addEventListener('pointermove', (e) => {
+  if (!downPoint || dragging) return;
+  if (Math.hypot(e.clientX - downPoint.x, e.clientY - downPoint.y) > 4) {
+    dragging = true;
+    setAction('drag');
+    hideControls();
+    window.petAPI.dragStart({ x: e.screenX, y: e.screenY });
+    document.body.style.cursor = 'grabbing';
+  }
+});
+
+stage.addEventListener('pointerup', (e) => {
+  if (!downPoint) return;
+  if (dragging) {
+    window.petAPI.dragEnd();
+    setAction(playing ? 'dance' : 'idle');
+    document.body.style.cursor = 'grab';
+  } else {
+    onTap();
+  }
+  dragging = false;
+  downPoint = null;
+  try {
+    stage.releasePointerCapture(e.pointerId);
+  } catch (_) {}
+});
+
+stage.addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+  hideControls();
+  window.petAPI.contextMenu();
+});
+
+say('我是 DeepSeek 小鲸鱼~', 3600);

@@ -1,0 +1,60 @@
+{
+  "name": "biuwhale",
+  "productName": "BiuWhale",
+  "version": "1.0.0",
+  "private": true,
+  "description": "鲸音 BiuWhale - 小鲸鱼桌宠 × B站音乐播放器（Biu + dsh-whale-widget + ANeko 的合并实验）",
+  "main": "main.js",
+  "author": "BiuWhale",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron . --no-sandbox",
+    "start:default": "electron .",
+    "dev": "electron . --no-sandbox --dev",
+    "dist": "electron-builder --win nsis"
+  },
+  "build": {
+    "appId": "com.biuwhale.desktop",
+    "productName": "BiuWhale",
+    "files": [
+      "main.js",
+      "preload-player.js",
+      "preload-pet.js",
+      "src/**/*",
+      "renderer/**/*",
+      "assets/**/*",
+      "docs/**/*",
+      "README.md",
+      "NOTICE",
+      "LICENSE",
+      "package.json"
+    ],
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "electronDist": "node_modules/electron/dist",
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "BiuWhale"
+    },
+    "artifactName": "BiuWhale-Setup-${version}.${ext}",
+    "electronLanguages": ["zh-CN", "en-US"]
+  },
+  "devDependencies": {
+    "electron": "33.4.11",
+    "electron-builder": "^26.0.12"
+  }
+}

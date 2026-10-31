@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:;" />
+<title>BiuWhale Pet</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100%;
+    background: transparent;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+    cursor: default;
+    font-family: "Microsoft YaHei UI", "Segoe UI", system-ui, sans-serif;
+  }
+
+  :root { --s: 1; }
+  #stage { position: relative; width: 100%; height: 100%; }
+  /* 鲸鱼本体列：固定在窗口右侧，左侧留给组件面板 */
+  #petCol {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: calc(240px * var(--s));
+    height: 100%;
+  }
+
+  /* ---------- DeepSeek 小鲸鱼（dsh-whale-widget 形象） ---------- */
+  #whaleWrap {
+    position: absolute;
+    left: 50%;
+    bottom: 46px;
+    width: 100%;
+    transform: translateX(-50%);
+    display: flex;
+    justify-content: center;
+    will-change: transform;
+  }
+
+  #whale {
+    width: 100%;
+    height: auto;
+    max-height: calc(100vh - 86px);
+    object-fit: contain;
+    transform-origin: 50% 92%;
+    filter: drop-shadow(0 6px 10px rgba(23, 33, 66, 0.22));
+    -webkit-user-drag: none;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0) scale(1, 1); }
+    50% { transform: translateY(-3.5px) scale(0.995, 1.008); }
+  }
+  @keyframes dance {
+    from { transform: translateY(0) rotate(-3.5deg) scale(1); }
+    to { transform: translateY(-8px) rotate(3.5deg) scale(1.03); }
+  }
+
+  body.action-idle #whale { animation: float 3.4s ease-in-out infinite; }
+  body.action-dance #whale { animation: dance 0.5s ease-in-out infinite alternate; }
+  body.action-drag #whale { transform: rotate(-7deg) scale(1.04); }
+
+  #whaleShadow {
+    position: absolute;
+    left: 50%;
+    bottom: 48px;
+    width: 84px;
+    height: 12px;
+    margin-left: -42px;
+    border-radius: 50%;
+    background: radial-gradient(ellipse at center, rgba(30, 42, 90, 0.24), rgba(30, 42, 90, 0) 70%);
+    pointer-events: none;
+  }
+
+  /* ---------- 思考泡泡（对齐 widget 的白底深蓝描边） ---------- */
+  #bubble {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    transform: translate(-50%, 4px) scale(0.94);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.18s ease, transform 0.18s ease;
+    max-width: 224px;
+  }
+  #bubble.show { opacity: 1; transform: translate(-50%, 0) scale(1); }
+
+  .bubble-body {
+    max-width: 224px;
+    padding: 6px 11px;
+    background: #ffffff;
+    border: 2.5px solid #22305f;
+    border-radius: 15px;
+    color: #22305f;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.45;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-shadow: 0 5px 14px rgba(23, 33, 66, 0.18);
+  }
+  .bubble-dots {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin: 3px 0 0 16px;
+    align-items: center;
+  }
+  .bubble-dots i {
+    display: block;
+    background: #fff;
+    border: 2px solid #22305f;
+    border-radius: 50%;
+  }
+  .bubble-dots i:nth-child(1) { width: 7px; height: 7px; }
+  .bubble-dots i:nth-child(2) { width: 5px; height: 5px; opacity: 0.95; }
+  .bubble-dots i:nth-child(3) { width: 3.5px; height: 3.5px; opacity: 0.9; }
+
+  /* ---------- 摸摸动效 ---------- */
+  #petpet {
+    position: absolute;
+    right: 6px;
+    top: 92px;
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    opacity: 0;
+    transform: scale(0.6) rotate(8deg);
+    transition: opacity 0.15s ease, transform 0.2s ease;
+    pointer-events: none;
+  }
+  #petpet.show { opacity: 1; transform: scale(1) rotate(0deg); }
+
+  /* 摸头爱心 */
+  #hearts {
+    position: absolute;
+    left: 50%;
+    top: 54px;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+    z-index: 7;
+  }
+  #hearts i {
+    position: absolute;
+    font-style: normal;
+    font-size: 13px;
+    color: #ff7ab6;
+    opacity: 0;
+    animation: heartUp 1.1s ease-out forwards;
+  }
+  @keyframes heartUp {
+    0% { opacity: 0; transform: translate(0, 0) scale(0.6); }
+    20% { opacity: 1; }
+    100% { opacity: 0; transform: translate(var(--dx, 0px), -46px) scale(1.05); }
+  }
+
+  /* ---------- 组件面板 ---------- */
+  #panel {
+    position: absolute;
+    right: calc(246px * var(--s));
+    bottom: 10px;
+    width: calc(180px * var(--s));
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 5;
+    transition: opacity 0.18s ease, transform 0.18s ease;
+  }
+  #panel.hide {
+    opacity: 0;
+    transform: translateX(10px);
+    pointer-events: none;
+  }
+  .card {
+    background: rgba(255, 255, 255, 0.97);
+    border: 2.5px solid #22305f;
+    border-radius: 14px;
+    padding: 8px 11px;
+    color: #22305f;
+    box-shadow: 0 8px 20px rgba(23, 33, 66, 0.18);
+    backdrop-filter: blur(6px);
+  }
+  .card .t {
+    font-size: 21px;
+    font-weight: 800;
+    letter-spacing: 0.6px;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+  }
+  .card .s { font-size: 10px; opacity: 0.68; margin-top: 2px; letter-spacing: 0.3px; }
+  .card .row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 10px;
+    font-weight: 700;
+    margin-top: 5px;
+    opacity: 0.9;
+  }
+  .bar {
+    height: 5px;
+    border-radius: 3px;
+    background: rgba(34, 48, 95, 0.13);
+    overflow: hidden;
+    margin-top: 3px;
+  }
+  .bar i {
+    display: block;
+    height: 100%;
+    width: 0%;
+    border-radius: 3px;
+    background: #22305f;
+    transition: width 0.45s ease;
+  }
+  .bar i.hot { background: #e0563f; }
+  .timer .btns { display: flex; gap: 6px; margin-top: 6px; }
+  .timer button {
+    flex: 1;
+    padding: 3px 0;
+    border: 2px solid #22305f;
+    border-radius: 9px;
+    background: #fff;
+    color: #22305f;
+    font-size: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.14s ease, transform 0.14s ease;
+  }
+  .timer button:hover { background: #eef2ff; }
+  .timer button:active { transform: scale(0.95); }
+  .timer button.primary { background: #22305f; color: #fff; }
+  .timer button.primary:hover { background: #2e3f7a; }
+
+  .card.player .now {
+    font-size: 10.5px;
+    font-weight: 700;
+    opacity: 0.85;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .card .line { display: flex; gap: 6px; margin-top: 7px; justify-content: center; }
+  button.mini {
+    width: 30px;
+    height: 28px;
+    padding: 0;
+    border: 2px solid #22305f;
+    border-radius: 9px;
+    background: #fff;
+    color: #22305f;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    transition: background 0.14s ease, transform 0.14s ease;
+  }
+  button.mini svg { width: 12px; height: 12px; }
+  button.mini:hover { background: #eef2ff; }
+  button.mini:active { transform: scale(0.93); }
+  button.mini.slim { width: 24px; }
+  button.mini.slim svg { width: 11px; height: 11px; }
+  button.mini.main { background: #22305f; color: #fff; }
+  button.mini.main:hover { background: #2e3f7a; }
+
+  #widgetBtn {
+    position: absolute;
+    left: 8px;
+    bottom: 12px;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border-radius: 50%;
+    border: 2.5px solid #22305f;
+    background: #fff;
+    color: #22305f;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    opacity: 0.4;
+    z-index: 6;
+    transition: opacity 0.15s ease, transform 0.15s ease, background 0.15s ease;
+  }
+  #stage:hover #widgetBtn { opacity: 1; }
+  #widgetBtn:hover { background: #eef2ff; transform: scale(1.07); }
+  #widgetBtn svg { width: 13px; height: 13px; }
+</style>
+</head>
+<body class="action-idle">
+  <div id="stage">
+    <aside id="panel" class="hide">
+      <div class="card player">
+        <div class="now" id="nowTitle">未在播放</div>
+        <div class="line">
+          <button id="pPrev" class="mini" title="上一首">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h2.4v14H6zM20 5v14l-11.4-7z"/></svg>
+          </button>
+          <button id="pPlay" class="mini main" title="播放 / 暂停">
+            <svg id="pIcoPlay" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.6v12.8L19 12z"/></svg>
+            <svg id="pIcoPause" viewBox="0 0 24 24" fill="currentColor" style="display:none"><path d="M7 5h3.4v14H7zM13.6 5H17v14h-3.4z"/></svg>
+          </button>
+          <button id="pNext" class="mini" title="下一首">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 5h2.4v14H16zM4 5v14l11.4-7z"/></svg>
+          </button>
+          <button id="pNextGroup" class="mini slim" title="下一个歌单" style="display:none">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 6l5.5 6-5.5 6"/>
+              <path d="M11 6l5.5 6-5.5 6"/>
+              <path d="M19.5 6v12"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="card clock">
+        <div class="t" id="clockTime">--:--</div>
+        <div class="s" id="clockDate">--</div>
+      </div>
+      <div class="card stat">
+        <div class="row"><span>CPU</span><b id="cpuVal">--</b></div>
+        <div class="bar"><i id="cpuBar"></i></div>
+        <div class="row"><span>内存</span><b id="memVal">--</b></div>
+        <div class="bar"><i id="memBar"></i></div>
+        <div class="row"><span>听歌</span><b id="listenVal">0m</b></div>
+      </div>
+      <div class="card timer">
+        <div class="t" id="timerVal">25:00</div>
+        <div class="btns">
+          <button id="timerToggle" class="primary">开始</button>
+          <button id="timerReset">重置</button>
+        </div>
+      </div>
+    </aside>
+
+    <div id="petCol">
+      <div id="bubble">
+        <div class="bubble-body" id="bubbleText"></div>
+        <div class="bubble-dots"><i></i><i></i><i></i></div>
+      </div>
+      <div id="whaleShadow"></div>
+      <div id="whaleWrap"><img id="whale" src="../../assets/whale/whale.png" alt="" /></div>
+      <img id="petpet" src="../../assets/whale/rua.gif" alt="" />
+      <button id="widgetBtn" title="组件">
+        <svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>
+      </button>
+
+      <div id="hearts"></div>
+    </div>
+  </div>
+  <script src="pet.js"></script>
+</body>
+</html>

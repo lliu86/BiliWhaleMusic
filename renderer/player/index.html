@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; media-src https: blob:;" />
+<title>鲸音 BiuWhale</title>
+<style>
+  :root {
+    --bg: #07080d;
+    --panel: rgba(255, 255, 255, 0.035);
+    --panel-strong: rgba(255, 255, 255, 0.08);
+    --stroke: rgba(255, 255, 255, 0.065);
+    --text: #e9ecf6;
+    --muted: #767d95;
+    --accent: #8fb4ff;
+    --accent-2: #a78bfa;
+    --accent-grad: linear-gradient(135deg, #8fb4ff 0%, #a78bfa 60%, #8b7bff 100%);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: transparent;
+    overflow: hidden;
+    color: var(--text);
+    font-family: "Microsoft YaHei UI", "Microsoft YaHei", "Segoe UI", system-ui, -apple-system, sans-serif;
+    font-size: 13px;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  button { font-family: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+  img { display: block; }
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.12); border-radius: 4px; border: 2px solid transparent; background-clip: content-box; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); background-clip: content-box; border: 2px solid transparent; }
+  ::-webkit-scrollbar-track { background: transparent; }
+
+  .app {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 20px);
+    margin: 10px;
+    border-radius: 18px;
+    background:
+      radial-gradient(120% 60% at 0% 0%, rgba(96, 132, 255, 0.12) 0%, transparent 55%),
+      radial-gradient(110% 70% at 100% 0%, rgba(139, 123, 255, 0.10) 0%, transparent 55%),
+      radial-gradient(90% 60% at 50% 110%, rgba(50, 80, 200, 0.08) 0%, transparent 60%),
+      var(--bg);
+    border: 1px solid var(--stroke);
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.72);
+    overflow: hidden;
+  }
+
+  /* ---------- 标题栏 ---------- */
+  .titlebar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 52px;
+    padding: 0 10px 0 16px;
+    -webkit-app-region: drag;
+    flex: none;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand-logo {
+    width: 30px; height: 30px;
+    border-radius: 10px;
+    background: #000;
+    display: grid; place-items: center;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+  }
+  .brand-logo svg { width: 19px; height: 19px; }
+  .brand-name { font-size: 15px; font-weight: 700; letter-spacing: 0.3px; }
+  .brand-name span { background: var(--accent-grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .brand-tag { font-size: 10px; color: var(--muted); margin-top: 1px; letter-spacing: 0.4px; }
+
+  .win-actions { display: flex; gap: 2px; -webkit-app-region: no-drag; align-items: center; }
+  .account {
+    display: flex; align-items: center; gap: 6px;
+    height: 28px; max-width: 132px;
+    padding: 0 9px 0 5px;
+    margin-right: 4px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    color: var(--muted);
+    font-size: 11px;
+    transition: all 0.16s ease;
+  }
+  .account:hover { background: rgba(255, 255, 255, 0.12); color: #fff; }
+  .account img { width: 20px; height: 20px; border-radius: 50%; object-fit: cover; background: #2a2f45; display: none; flex: none; }
+  .account.logged img { display: block; }
+  .account span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .account.logged { color: #e7e9f4; }
+
+  .account-menu {
+    position: absolute;
+    right: 10px;
+    top: 46px;
+    min-width: 132px;
+    padding: 4px;
+    border-radius: 10px;
+    background: #151926;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+    display: none;
+    z-index: 60;
+  }
+  .account-menu.show { display: block; }
+  .account-menu button {
+    display: block; width: 100%;
+    text-align: left;
+    padding: 7px 11px;
+    border-radius: 7px;
+    font-size: 11.5px;
+    color: #cdd2e6;
+  }
+  .account-menu button:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
+  .win-btn {
+    width: 32px; height: 32px;
+    border-radius: 9px;
+    display: grid; place-items: center;
+    color: var(--muted);
+    transition: all 0.16s ease;
+  }
+  .win-btn:hover { background: rgba(255, 255, 255, 0.08); color: var(--text); }
+  .win-btn.close:hover { background: rgba(255, 90, 90, 0.85); color: #fff; }
+  .win-btn svg { width: 14px; height: 14px; }
+
+  /* ---------- Tabs ---------- */
+  .tabs {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 16px 10px;
+    flex: none;
+  }
+  .tab {
+    padding: 6px 13px;
+    border-radius: 9px;
+    font-size: 12px;
+    color: var(--muted);
+    transition: all 0.16s ease;
+  }
+  .tab:hover { color: var(--text); background: rgba(255, 255, 255, 0.05); }
+  .tab.active { color: #fff; background: rgba(255, 255, 255, 0.1); font-weight: 600; }
+  .tab .count { font-size: 10px; opacity: 0.7; margin-left: 3px; }
+  .tabs .spacer { flex: 1; }
+  .source-tag {
+    font-size: 10px; color: #a9c3ff;
+    padding: 3px 8px; border-radius: 20px;
+    background: rgba(122, 162, 255, 0.10);
+    border: 1px solid rgba(122, 162, 255, 0.20);
+  }
+
+  /* ---------- 搜索 ---------- */
+  .searchbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 16px;
+    padding: 0 6px 0 12px;
+    height: 42px;
+    border-radius: 13px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--stroke);
+    flex: none;
+    transition: border-color 0.18s ease, background 0.18s ease;
+  }
+  .searchbar:focus-within { border-color: rgba(168, 121, 255, 0.55); background: rgba(255, 255, 255, 0.07); }
+  .searchbar svg { width: 15px; height: 15px; color: var(--muted); flex: none; }
+  .searchbar input {
+    flex: 1; min-width: 0;
+    background: none; border: none; outline: none;
+    color: var(--text); font-size: 13px; font-family: inherit;
+  }
+  .searchbar input::placeholder { color: rgba(138, 144, 169, 0.75); }
+  .search-btn {
+    height: 30px; padding: 0 14px;
+    border-radius: 9px;
+    background: var(--accent-grad);
+    color: #fff; font-size: 12px; font-weight: 600;
+    transition: filter 0.16s ease, transform 0.16s ease;
+  }
+  .search-btn:hover { filter: brightness(1.1); }
+  .search-btn:active { transform: scale(0.97); }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; padding: 11px 16px 4px; flex: none; }
+  .chip {
+    padding: 5px 11px;
+    border-radius: 20px;
+    font-size: 11px;
+    color: #b9bfd6;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    transition: all 0.16s ease;
+  }
+  .chip:hover { color: #fff; border-color: rgba(122, 162, 255, 0.42); background: rgba(122, 162, 255, 0.10); }
+
+  /* ---------- 列表 ---------- */
+  .content { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 6px 10px 14px; min-height: 0; }
+
+  .hero {
+    margin: 6px 6px 10px;
+    padding: 18px 18px;
+    border-radius: 16px;
+    background:
+      radial-gradient(120% 120% at 0% 0%, rgba(122, 162, 255, 0.18), transparent 60%),
+      radial-gradient(120% 120% at 100% 100%, rgba(122, 162, 255, 0.24), transparent 60%),
+      rgba(255, 255, 255, 0.045);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .hero h2 { font-size: 17px; font-weight: 700; letter-spacing: 0.2px; }
+  .hero p { margin-top: 6px; font-size: 11px; color: rgba(237, 239, 247, 0.65); line-height: 1.6; }
+  .hero .keys { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .kbd {
+    font-size: 10px; color: #cdd3e6;
+    padding: 3px 7px; border-radius: 6px;
+    background: rgba(0, 0, 0, 0.28);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 8px 8px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    position: relative;
+  }
+  .row:hover { background: rgba(255, 255, 255, 0.055); }
+  .row.active { background: rgba(255, 122, 182, 0.1); }
+  .row.active::before {
+    content: ""; position: absolute; left: 0; top: 18%; bottom: 18%;
+    width: 2.5px; border-radius: 2px; background: var(--accent-grad);
+  }
+  .cover {
+    width: 46px; height: 46px; border-radius: 10px;
+    object-fit: cover; flex: none;
+    background: linear-gradient(135deg, #262a3c, #1a1d2b);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+  .row-main { flex: 1; min-width: 0; }
+  .row-title {
+    font-size: 12.5px; font-weight: 500; color: #e7e9f4;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .row.active .row-title { color: #c9d8ff; }
+  .row-sub { margin-top: 4px; font-size: 10.5px; color: var(--muted); display: flex; gap: 8px; overflow: hidden; white-space: nowrap; }
+  .row-sub .up { color: #a9b0c8; max-width: 45%; overflow: hidden; text-overflow: ellipsis; }
+  .row-right { display: flex; align-items: center; gap: 4px; flex: none; }
+  .dur { font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .icon-btn {
+    width: 28px; height: 28px; border-radius: 8px;
+    display: grid; place-items: center; color: var(--muted);
+    opacity: 0; transition: all 0.15s ease;
+  }
+  .row:hover .icon-btn, .icon-btn.on { opacity: 1; }
+  .icon-btn:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
+  .icon-btn.on { color: var(--accent); }
+  .icon-btn svg { width: 14px; height: 14px; }
+
+  .eq { display: flex; align-items: flex-end; gap: 2px; height: 12px; margin-right: 3px; }
+  .eq i { width: 2.5px; background: var(--accent); border-radius: 1px; animation: eq 0.9s ease-in-out infinite; }
+  .eq i:nth-child(1) { height: 40%; animation-delay: -0.2s; }
+  .eq i:nth-child(2) { height: 100%; animation-delay: -0.5s; }
+  .eq i:nth-child(3) { height: 65%; animation-delay: -0.35s; }
+  @keyframes eq { 0%, 100% { transform: scaleY(0.35); } 50% { transform: scaleY(1); } }
+
+  .state {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 10px; padding: 60px 20px; color: var(--muted); font-size: 12px; text-align: center; line-height: 1.7;
+  }
+  .state .big { font-size: 34px; filter: saturate(0.9); }
+  .skeleton { height: 62px; border-radius: 12px; margin: 4px 0; background: linear-gradient(90deg, rgba(255,255,255,.04), rgba(255,255,255,.09), rgba(255,255,255,.04)); background-size: 200% 100%; animation: shimmer 1.2s linear infinite; }
+  @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+  .spinner {
+    width: 22px; height: 22px; border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    border-top-color: var(--accent);
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ---------- B站收藏 ---------- */
+  .login-card {
+    margin: 26px 8px;
+    padding: 28px 22px;
+    border-radius: 18px;
+    text-align: center;
+    background:
+      radial-gradient(120% 100% at 0% 0%, rgba(110, 140, 255, 0.18), transparent 60%),
+      radial-gradient(120% 100% at 100% 100%, rgba(122, 162, 255, 0.12), transparent 60%),
+      rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .login-card .login-whale { font-size: 40px; line-height: 1; }
+  .login-card h3 { margin: 12px 0 8px; font-size: 15px; }
+  .login-card p { font-size: 11.5px; color: var(--muted); line-height: 1.75; }
+  .login-card .btn { margin: 18px auto 0; max-width: 190px; width: 100%; }
+
+  .user-bar { display: flex; align-items: center; gap: 10px; padding: 10px 8px 6px; }
+  .avatar {
+    width: 38px; height: 38px; border-radius: 50%;
+    object-fit: cover; background: #232838; flex: none;
+  }
+  .user-meta { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .user-meta b { font-size: 12.5px; }
+  .user-meta span { font-size: 10.5px; color: var(--muted); margin-top: 2px; }
+  .folder-bar { display: flex; gap: 6px; flex-wrap: wrap; padding: 4px 8px 10px; }
+  .chip.on { color: #fff; border-color: rgba(122, 162, 255, 0.52); background: rgba(122, 162, 255, 0.14); }
+  .muted { font-size: 11px; color: var(--muted); }
+
+  /* ---------- 底部播放条 ---------- */
+  .playbar {
+    position: relative;
+    flex: none;
+    padding: 0 14px 10px;
+    background: linear-gradient(to top, rgba(8, 10, 17, 0.92), rgba(8, 10, 17, 0.55));
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(18px);
+  }
+
+  .progress {
+    position: relative;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+  }
+  .progress-track { position: relative; height: 3px; width: 100%; border-radius: 2px; background: rgba(255, 255, 255, 0.12); overflow: visible; }
+  .progress-fill { height: 100%; width: 0%; border-radius: 2px; background: var(--accent-grad); }
+  .progress-dot {
+    position: absolute; top: 50%; left: 0%;
+    width: 9px; height: 9px; margin-left: -4.5px;
+    border-radius: 50%; background: #fff;
+    transform: translateY(-50%) scale(0);
+    transition: transform 0.15s ease;
+    box-shadow: 0 0 8px rgba(143, 180, 255, 0.85);
+  }
+  .progress:hover .progress-dot { transform: translateY(-50%) scale(1); }
+
+  .pb-main { display: flex; align-items: center; gap: 11px; padding-top: 2px; }
+  .pb-cover {
+    width: 48px; height: 48px; border-radius: 12px; overflow: hidden; flex: none;
+    background: linear-gradient(135deg, #2a2f45, #181b28);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+    position: relative;
+  }
+  .pb-cover img { width: 100%; height: 100%; object-fit: cover; }
+  .pb-cover .empty-note { position: absolute; inset: 0; display: grid; place-items: center; font-size: 18px; color: #5c6480; }
+  .pb-cover.playing { animation: pulse 2.4s ease-in-out infinite; }
+  @keyframes pulse { 0%, 100% { box-shadow: 0 4px 14px rgba(0,0,0,.35); } 50% { box-shadow: 0 4px 22px rgba(122, 162, 255, 0.28); } }
+
+  .pb-info { flex: 1; min-width: 0; }
+  .pb-title {
+    font-size: 12px; font-weight: 600; line-height: 1.35;
+    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+    overflow: hidden;
+  }
+  .pb-sub { margin-top: 4px; font-size: 10.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .pb-controls { display: flex; align-items: center; gap: 6px; flex: none; }
+  .ctrl {
+    width: 32px; height: 32px; border-radius: 50%;
+    display: grid; place-items: center;
+    color: #c8cde2; transition: all 0.15s ease;
+  }
+  .ctrl:hover { background: rgba(255, 255, 255, 0.09); color: #fff; }
+  .ctrl svg { width: 16px; height: 16px; }
+  .ctrl.play {
+    width: 40px; height: 40px;
+    background: var(--accent-grad);
+    color: #fff;
+    box-shadow: 0 6px 18px rgba(168, 121, 255, 0.42);
+  }
+  .ctrl.play:hover { filter: brightness(1.08); transform: scale(1.03); }
+  .ctrl.play svg { width: 17px; height: 17px; }
+  .ctrl.small { width: 26px; height: 26px; color: var(--muted); }
+  .ctrl.small:hover { color: #fff; }
+  .ctrl.small svg { width: 14px; height: 14px; }
+
+  .pb-extra { display: flex; align-items: center; gap: 2px; flex: none; }
+  .mini-btn {
+    width: 30px; height: 30px; border-radius: 8px;
+    display: grid; place-items: center; color: var(--muted);
+    transition: all 0.15s ease;
+  }
+  .mini-btn:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
+  .mini-btn.on { color: var(--accent); }
+  .mini-btn svg { width: 15px; height: 15px; }
+
+  .pb-times {
+    display: flex; justify-content: space-between;
+    font-size: 10px; color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    margin-top: -1px;
+  }
+
+
+  /* ---------- 歌词 ---------- */
+  .lyrics {
+    position: absolute; left: 0; right: 0; top: 46px; bottom: 92px; z-index: 30;
+    display: none; flex-direction: column;
+    background: linear-gradient(180deg, rgba(8, 10, 17, 0.97), rgba(8, 10, 17, 0.92));
+    backdrop-filter: blur(20px);
+  }
+  .lyrics.open { display: flex; }
+  .ly-head { display: flex; align-items: center; gap: 8px; padding: 10px 16px 2px; font-size: 11px; color: var(--muted); }
+  .ly-head .name { color: #e8ecf8; font-weight: 600; font-size: 12px; max-width: 58%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ly-head .src { opacity: 0.65; font-size: 10.5px; }
+  .ly-head .spacer { flex: 1; }
+  .ly-body { flex: 1; overflow-y: auto; padding: 14px 26px 45%; text-align: center; scroll-behavior: smooth; }
+  .ly-line {
+    padding: 8px 0; font-size: 13px; line-height: 1.55;
+    color: rgba(255, 255, 255, 0.36);
+    transition: color 0.18s ease, transform 0.18s ease;
+    cursor: pointer;
+  }
+  .ly-line:hover { color: rgba(255, 255, 255, 0.72); }
+  .ly-line.active { color: #fff; font-weight: 600; transform: scale(1.05); }
+  .ly-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: 9px; padding-bottom: 30%; }
+  .ly-empty .song { font-size: 17px; font-weight: 700; }
+  .ly-empty .hint { font-size: 11.5px; color: var(--muted); }
+
+  /* ---------- 队列抽屉 ---------- */
+  .drawer {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 62%;
+    background: rgba(12, 14, 23, 0.97);
+    border-top: 1px solid rgba(255, 255, 255, 0.09);
+    border-radius: 18px 18px 0 0;
+    transform: translateY(102%);
+    transition: transform 0.26s cubic-bezier(0.32, 0.72, 0, 1);
+    display: flex; flex-direction: column;
+    z-index: 20;
+    box-shadow: 0 -20px 50px rgba(0, 0, 0, 0.45);
+  }
+  .drawer.open { transform: translateY(0); }
+  .drawer-head {
+    display: flex; align-items: center; gap: 8px;
+    padding: 14px 16px 8px;
+    font-size: 12px; font-weight: 600;
+  }
+  .drawer-head .count { color: var(--muted); font-weight: 400; font-size: 11px; }
+  .drawer-head .spacer { flex: 1; }
+  .link-btn { font-size: 11px; color: var(--muted); padding: 4px 8px; border-radius: 7px; }
+  .link-btn:hover { color: #fff; background: rgba(255, 255, 255, 0.07); }
+  .queue-list { flex: 1; overflow-y: auto; padding: 0 10px 12px; }
+
+  /* ---------- 设置 ---------- */
+  .modal {
+    position: absolute; inset: 0;
+    background: rgba(4, 5, 9, 0.55);
+    backdrop-filter: blur(6px);
+    display: none; align-items: center; justify-content: center;
+    z-index: 30;
+    padding: 20px;
+  }
+  .modal.open { display: flex; }
+  .sheet {
+    width: 100%; max-width: 340px;
+    max-height: 100%;
+    overflow-y: auto;
+    background: #12151f;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 18px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+  }
+  .sheet h3 { font-size: 14px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; }
+  .field { margin-bottom: 14px; }
+  .field label { display: flex; justify-content: space-between; font-size: 11.5px; color: #b9bfd6; margin-bottom: 7px; }
+  .field label .val { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .field input[type="range"] {
+    -webkit-appearance: none; width: 100%; height: 4px; border-radius: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    outline: none;
+  }
+  .field input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%;
+    background: #fff; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4); cursor: pointer;
+  }
+  .field input[type="text"] {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--stroke); border-radius: 9px;
+    color: var(--text); font-size: 11px; padding: 9px 10px;
+    outline: none; font-family: inherit;
+  }
+  .field input[type="text"]::placeholder { color: rgba(255, 255, 255, 0.28); }
+  .field input[type="text"]:focus { border-color: rgba(143, 180, 255, 0.55); }
+  .btn.tiny { padding: 0 12px; height: 33px; flex: none; font-size: 11.5px; }
+  .field .hint { font-size: 10px; color: var(--muted); margin-top: 6px; line-height: 1.5; }
+  .field textarea {
+    width: 100%; height: 58px; resize: none;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--stroke); border-radius: 9px;
+    color: var(--text); font-size: 11px; padding: 8px 10px;
+    outline: none; font-family: inherit;
+  }
+  .switch-row { display: flex; align-items: center; justify-content: space-between; padding: 7px 0; font-size: 12px; color: #cdd2e6; }
+  .switch { width: 38px; height: 21px; border-radius: 12px; background: rgba(255, 255, 255, 0.14); position: relative; transition: background 0.18s ease; flex: none; }
+  .switch::after { content: ""; position: absolute; top: 2.5px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform 0.18s ease; }
+  .switch.on { background: linear-gradient(135deg, var(--accent), var(--accent-2)); }
+  .switch.on::after { transform: translateX(16px); }
+  .sheet .note { font-size: 10.5px; color: var(--muted); line-height: 1.65; margin-top: -6px; }
+  .sheet-actions { display: flex; gap: 8px; margin-top: 16px; }
+  .btn {
+    flex: 1; height: 36px; border-radius: 10px; font-size: 12px; font-weight: 600;
+    background: rgba(255, 255, 255, 0.08);
+    transition: all 0.16s ease;
+  }
+  .btn:hover { background: rgba(255, 255, 255, 0.14); }
+  .btn.primary { background: var(--accent-grad); color: #fff; }
+  .btn.primary:hover { filter: brightness(1.08); }
+  .about { margin-top: 14px; font-size: 10px; color: #666d85; line-height: 1.7; }
+
+  /* ---------- Toast ---------- */
+  .toast {
+    position: absolute; left: 50%; bottom: 120px;
+    transform: translate(-50%, 8px);
+    padding: 8px 14px; border-radius: 10px;
+    background: rgba(20, 23, 35, 0.96);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    font-size: 11.5px; color: #e9ebf5;
+    opacity: 0; pointer-events: none;
+    transition: all 0.2s ease;
+    z-index: 40;
+    max-width: 80%;
+    text-align: center;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="titlebar">
+    <div class="brand">
+      <div class="brand-logo" style="background-image:url('../../assets/icon.png');background-size:cover;background-position:center"></div>
+      <div>
+        <div class="brand-name">鲸音 <span>BiuWhale</span></div>
+      </div>
+    </div>
+    <div class="win-actions">
+      <button class="account" id="btnAccount" title="登录 B 站">
+        <img id="acctAvatar" alt="" />
+        <span id="acctName">登录</span>
+      </button>
+      <button class="win-btn" id="btnSettings" title="设置">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1.1-1.55 1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 8.9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.1.37.4.67.77.77H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1Z"/></svg>
+      </button>
+      <button class="win-btn" id="btnMin" title="最小化">
+        <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg>
+      </button>
+      <button class="win-btn close" id="btnClose" title="隐藏到托盘">
+        <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" data-view="search">发现</button>
+    <button class="tab" data-view="bfav">B站收藏</button>
+    <button class="tab" data-view="local">本机收藏<span class="count" id="favCount"></span></button>
+    <div class="spacer"></div>
+    <span class="source-tag">BILIBILI</span>
+  </div>
+
+  <div class="searchbar" id="searchBar">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2" stroke-linecap="round"/></svg>
+    <input id="q" placeholder="搜歌、歌手、UP 主…" autocomplete="off" spellcheck="false" />
+    <button class="search-btn" id="btnSearch">搜索</button>
+  </div>
+
+  <div class="chips" id="chips">
+    <button class="chip" data-q="周杰伦">周杰伦</button>
+    <button class="chip" data-q="轻音乐 学习">轻音乐</button>
+    <button class="chip" data-q="电子 纯音乐">电子</button>
+    <button class="chip" data-q="古风 合集">古风</button>
+    <button class="chip" data-q="爵士 咖啡">爵士</button>
+    <button class="chip" data-q="lofi">lofi</button>
+  </div>
+
+  <main class="content" id="content"></main>
+
+  <section class="lyrics" id="lyricsPanel">
+    <div class="ly-head">
+      <span class="name" id="lyName">歌词</span>
+      <span class="src" id="lySource"></span>
+      <span class="spacer"></span>
+      <button class="link-btn" id="btnCloseLyrics">收起</button>
+    </div>
+    <div class="ly-body" id="lyBody"></div>
+  </section>
+
+  <footer class="playbar">
+    <div class="progress" id="progress">
+      <div class="progress-track">
+        <div class="progress-fill" id="progressFill"></div>
+        <div class="progress-dot" id="progressDot"></div>
+      </div>
+    </div>
+    <div class="pb-main">
+      <div class="pb-cover" id="pbCoverBox">
+        <img id="pbCover" alt="" style="display:none" />
+        <div class="empty-note" id="pbEmpty">♪</div>
+      </div>
+      <div class="pb-info">
+        <div class="pb-title" id="pbTitle">未在播放</div>
+        <div class="pb-sub" id="pbSub">点一首歌，让小鲸鱼陪你听</div>
+      </div>
+      <div class="pb-controls">
+        <button class="ctrl" id="btnPrev" title="上一首">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h2v14H6zM20 5v14l-11-7z"/></svg>
+        </button>
+        <button class="ctrl play" id="btnPlay" title="播放/暂停">
+          <svg id="icoPlay" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.6v12.8L19 12z"/></svg>
+          <svg id="icoPause" viewBox="0 0 24 24" fill="currentColor" style="display:none"><path d="M7 5h3.4v14H7zM13.6 5H17v14h-3.4z"/></svg>
+        </button>
+        <button class="ctrl" id="btnNext" title="下一首">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg>
+        </button>
+        <button class="ctrl small" id="btnNextGroup" title="下一个歌单（跳过当前合集）">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 5.5l6 6.5-6 6.5"/>
+            <path d="M11.5 5.5l6 6.5-6 6.5"/>
+            <path d="M20.5 5v14"/>
+          </svg>
+        </button>
+      </div>
+      <div class="pb-extra">
+        <button class="mini-btn" id="btnMode" title="播放模式">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+        </button>
+        <button class="mini-btn" id="btnQueue" title="播放队列">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+        </button>
+        <button class="mini-btn" id="btnLyrics" title="歌词">
+          <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.5px">词</span>
+        </button>
+        <button class="mini-btn" id="btnFav" title="收藏">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20.3 4.7 13a4.6 4.6 0 0 1 6.5-6.5l.8.8.8-.8A4.6 4.6 0 1 1 19.3 13z"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="pb-times"><span id="tCur">0:00</span><span id="tDur">0:00</span></div>
+  </footer>
+
+  <aside class="drawer" id="drawer">
+    <div class="drawer-head">
+      <span>播放队列</span><span class="count" id="queueCount"></span>
+      <div class="spacer"></div>
+      <button class="link-btn" id="btnClearQueue">清空</button>
+      <button class="link-btn" id="btnCloseQueue">收起</button>
+    </div>
+    <div class="queue-list" id="queueList"></div>
+  </aside>
+
+  <div class="modal" id="settingsModal">
+    <div class="sheet">
+      <h3>设置 <button class="link-btn" id="btnCloseSettings">关闭</button></h3>
+
+      <div class="field">
+        <label>桌宠大小 <span class="val" id="scaleVal">100%</span></label>
+        <input type="range" id="petScale" min="70" max="160" step="5" value="100" />
+      </div>
+
+      <div class="field">
+        <label>音量 <span class="val" id="volVal">80%</span></label>
+        <input type="range" id="volume" min="0" max="100" step="1" value="80" />
+      </div>
+
+      <div class="switch-row">
+        <span>桌宠始终置顶</span>
+        <button class="switch on" id="swTop"></button>
+      </div>
+      <div class="switch-row">
+        <span>显示小鲸鱼</span>
+        <button class="switch on" id="swShowPet"></button>
+      </div>
+
+      <div class="sheet-actions">
+        <button class="btn" id="btnCancelSettings">取消</button>
+        <button class="btn primary" id="btnSaveSettings">保存</button>
+      </div>
+
+        <div class="about">
+        鲸音 BiuWhale v1.0 · 合并实验<br />
+        音乐数据来自 Bilibili 公开接口，仅供个人学习使用。<br />
+        桌宠形象来自 dsh-whale-widget（MIT），气泡风格同步复刻。
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <div class="account-menu" id="accountMenu">
+    <button id="menuFav">打开 B站收藏</button>
+    <button id="menuLogout">退出登录</button>
+  </div>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
