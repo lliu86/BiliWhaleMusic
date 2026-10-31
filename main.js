@@ -84,6 +84,7 @@ const pet = {
   dragging: false,
   dragOffset: { x: 0, y: 0 },
   dragTimer: null,
+  traceTick: 0,
 };
 
 const UA =
@@ -434,15 +435,9 @@ app.on('before-quit', () => {
 
 /** 主屏可用区域，换算成窗口坐标（DIP）；高分屏下 Electron 给的 workArea 可能是物理像素 */
 function workAreaDip() {
-  const d = screen.getPrimaryDisplay();
-  const s = d.scaleFactor || 1;
-  const wa = d.workArea;
-  return {
-    x: Math.round(wa.x / s),
-    y: Math.round(wa.y / s),
-    width: Math.round(wa.width / s),
-    height: Math.round(wa.height / s),
-  };
+  // Electron 的 workArea / getBounds / setBounds 都是 DIP，直接用
+  const wa = screen.getPrimaryDisplay().workArea;
+  return { x: wa.x, y: wa.y, width: wa.width, height: wa.height };
 }
 
 function createPlayer() {
@@ -586,6 +581,39 @@ function createPet() {
   });
   petWin.setIgnoreMouseEvents(true, { forward: true });
 
+  // Windows 下 ignoreMouseEvents(true) 时 Chromium 收不到 mousemove，
+  // 由主进程轮询光标位置来判断「是否在鲸鱼/面板上」，再决定是否可交互。
+  if (petWin.__hoverTimer) clearInterval(petWin.__hoverTimer);
+  petWin.__hoverTimer = setInterval(() => {
+    if (!petWin || petWin.isDestroyed()) return;
+    if (pet.dragging) {
+      if (pet.__interactive !== true) {
+        pet.__interactive = true;
+        petWin.setIgnoreMouseEvents(false);
+      }
+      return;
+    }
+    const c = screen.getCursorScreenPoint();
+    const cx = c.x;
+    const cy = c.y;
+    const b = petWin.getBounds();
+    const whaleW = Math.round(PET_W * (pet.scale || 1));
+    const panelOpen = store.get('petPanelOpen') === true;
+    const inWhale = cx >= b.x + b.width - whaleW && cx <= b.x + b.width && cy >= b.y && cy <= b.y + b.height;
+    const inPanel = panelOpen && cx >= b.x && cx <= b.x + b.width - whaleW && cy >= b.y && cy <= b.y + b.height;
+    const btnR = 18;
+    const btnX = b.x + 8 + 13;
+    const btnY = b.y + b.height - 12 - 13;
+    const inBtn = Math.abs(cx - btnX) <= btnR && Math.abs(cy - btnY) <= btnR;
+    const inside = inWhale || inPanel || inBtn;
+    if (inside !== pet.__interactive) {
+      pet.__interactive = inside;
+      if (process.env.NEKO_TRACE_DRAG) log('hover ->', inside, JSON.stringify({ cx, cy, b: { x: b.x, y: b.y, w: b.width, h: b.height } }));
+      petWin.setIgnoreMouseEvents(!inside, { forward: true });
+    }
+  }, 80);
+
+
   petWin.once('ready-to-show', () => {
     if (store.get('showPet') !== false) petWin.showInactive();
     petWin.webContents.send('pet:scale', scale);
@@ -603,6 +631,7 @@ function createPet() {
   });
 
   petWin.on('closed', () => {
+    if (petWin && petWin.__hoverTimer) clearInterval(petWin.__hoverTimer);
     petWin = null;
   });
 }
@@ -702,16 +731,17 @@ function clampPetBounds() {
   if (!petWin || petWin.isDestroyed()) return;
   const b = petWin.getBounds();
   const wa = workAreaDip();
+  const size = petSize();
   const whaleW = Math.round(PET_W * pet.scale);
   // 鲸鱼本体必须完整可见；组件面板允许移出屏幕
   const minX = wa.x + whaleW - b.width;
   const maxX = wa.x + wa.width - b.width;
   const x = Math.min(Math.max(b.x, minX), Math.max(minX, maxX));
   const y = Math.min(Math.max(b.y, wa.y), wa.y + wa.height - b.height);
-  if (x !== b.x || y !== b.y) {
+  if (x !== b.x || y !== b.y || b.width !== size.w || b.height !== size.h) {
     pet.x = x;
     pet.y = y;
-    petWin.setBounds({ x, y, width: b.width, height: b.height });
+    petWin.setBounds({ x, y, width: size.w, height: size.h });
   }
 }
 
@@ -1119,6 +1149,7 @@ ipcMain.on('pet:panel', (_e, open) => {
 
 ipcMain.on('pet:interactive', (_e, interactive) => {
   if (!petWin || petWin.isDestroyed()) return;
+  if (pet.dragging && !interactive) return; // 拖动期间保持可接收事件
   petWin.setIgnoreMouseEvents(!interactive, { forward: true });
   if (process.env.NEKO_TRACE_MOUSE) log('interactive ->', interactive);
 });
@@ -1131,26 +1162,25 @@ ipcMain.on('pet:drag-start', (_e, point) => {
   petWin.webContents.send('pet:action', 'drag');
   petWin.setIgnoreMouseEvents(false);
   const [wx, wy] = petWin.getPosition();
-  const s = screen.getPrimaryDisplay().scaleFactor || 1;
-  // 光标坐标是物理像素、窗口坐标是 DIP，拖动前统一换算
-  const p0x = point.x / s;
-  const p0y = point.y / s;
-  pet.dragOffset = { x: p0x - wx, y: p0y - wy };
+  pet.dragOffset = { x: point.x - wx, y: point.y - wy };
   clearInterval(pet.dragTimer);
   pet.dragTimer = setInterval(() => {
     if (!pet.dragging || !petWin || petWin.isDestroyed()) return;
     const c = screen.getCursorScreenPoint();
-    pet.x = c.x / s - pet.dragOffset.x;
-    pet.y = c.y / s - pet.dragOffset.y;
+    pet.x = c.x - pet.dragOffset.x;
+    pet.y = c.y - pet.dragOffset.y;
     const wa = workAreaDip();
-    const b = petWin.getBounds();
-    const minX = wa.x + Math.round(PET_W * (pet.scale || 1)) - b.width;
-    const maxX = wa.x + wa.width - b.width;
+    const size = petSize();
+    const minX = wa.x + Math.round(PET_W * (pet.scale || 1)) - size.w;
+    const maxX = wa.x + wa.width - size.w;
     const nx = Math.min(Math.max(pet.x, Math.min(minX, maxX)), maxX);
-    const ny = Math.min(Math.max(pet.y, wa.y), wa.y + wa.height - b.height);
+    const ny = Math.min(Math.max(pet.y, wa.y), wa.y + wa.height - size.h);
     pet.x = nx;
     pet.y = ny;
-    petWin.setPosition(Math.round(nx), Math.round(ny));
+    if (process.env.NEKO_TRACE_DRAG && ++pet.traceTick % 8 === 0) {
+      log('drag', JSON.stringify({ c: { x: c.x, y: c.y }, s, off: pet.dragOffset, nx, ny, wa }));
+    }
+    petWin.setBounds({ x: Math.round(nx), y: Math.round(ny), width: size.w, height: size.h });
   }, 16);
 });
 

@@ -405,6 +405,7 @@ function onTap() {
 }
 
 document.addEventListener('mousemove', (e) => {
+  if (dragging) return; // 拖动中不要切换命中状态，否则窗口变回穿透会中断拖拽
   const isIn = inside(e.clientX, e.clientY);
   if (isIn !== hover) {
     hover = isIn;

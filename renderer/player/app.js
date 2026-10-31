@@ -657,7 +657,8 @@ async function loadLyrics(item) {
   renderLyricsView();
   const token = ++lyricsToken;
   const res = await bridge
-    .lyrics({ song: songName(item), artist: songAlbum(item), duration: item.duration || 0 })
+    // 只把曲名给歌词服务：歌手从「歌名 - 歌手」里解析，避免把合集名当成歌手
+    .lyrics({ song: songName(item), artist: '', duration: item.duration || 0 })
     .catch(() => null);
   if (token !== lyricsToken) return;
   if (res && res.ok && res.lrc) {
