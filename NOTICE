@@ -1,10 +1,10 @@
 # NOTICE
 
 This file records the third-party software, assets and design ideas used by
-the BiuWhale project, and the license boundaries that apply when this project
+the BiliWhaleMusic project, and the license boundaries that apply when this project
 is distributed or used commercially.
 
-BiuWhale itself is released under the MIT License (see LICENSE). The license
+BiliWhaleMusic itself is released under the MIT License (see LICENSE). The license
 terms below apply to the respective third-party components.
 
 ---
@@ -14,12 +14,12 @@ terms below apply to the respective third-party components.
 - Source: https://github.com/wood3n/biu (Electron + React)
 - License: **PolyForm Noncommercial 1.0.0**
 
-BiuWhale independently implements its Bilibili integration (WBI signing,
+BiliWhaleMusic independently implements its Bilibili integration (WBI signing,
 search, video detail, DASH audio stream parsing, player interaction model)
 with reference to Biu's design. The PolyForm Noncommercial License permits
 non-commercial use only. **Commercial use of code or design derived from Biu
 requires permission from the original author.** If you intend to distribute or
-sell BiuWhale, or use it in a commercial product, you must obtain such
+sell BiliWhaleMusic, or use it in a commercial product, you must obtain such
 permission first.
 
 ## 2. dsh-whale-widget — whale mascot assets and speech-bubble style
@@ -28,7 +28,7 @@ permission first.
 - License: MIT
 - Copyright (c) 2026 MeteorNOX
 
-BiuWhale uses `DSniang1.png`, `DSniang02.png` and `rua.gif` from this project,
+BiliWhaleMusic uses `DSniang1.png`, `DSniang02.png` and `rua.gif` from this project,
 and recreates its speech-bubble visual style. The license text is distributed
 with the assets in `assets/whale/LICENSE-dsh-whale-widget.txt`.
 
@@ -37,7 +37,7 @@ with the assets in `assets/whale/LICENSE-dsh-whale-widget.txt`.
 - Source: https://github.com/pass-with-high-score/ANeko (Android + Compose)
 - License: LGPL-2.1
 
-BiuWhale only borrows behavioral conventions (dragging, context menu,
+BiliWhaleMusic only borrows behavioral conventions (dragging, context menu,
 always-on-top widget window) and does not port ANeko code. If ANeko code is
 ever ported into this project, the corresponding modifications must be
 released under an LGPL-compatible license.
@@ -48,7 +48,7 @@ released under an LGPL-compatible license.
 - License: declared MIT in package.json, but the repository contains no
   LICENSE file; Live2D Cubism Core and sample models are separately licensed.
 
-BiuWhale references the "desktop companion" product form (transparent
+BiliWhaleMusic references the "desktop companion" product form (transparent
 always-on-top window, playback-state linkage, Live2D slot). No code or models
 from this project are used.
 

@@ -1,4 +1,4 @@
-# BiuWhale · Little Whale × Bilibili Music Player
+# BiliWhaleMusic · Little Whale × Bilibili Music Player
 
 ![License](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Electron](https://img.shields.io/badge/Electron-33.4.11-47848F.svg)
@@ -81,7 +81,7 @@ A runnable experiment that "merges several open-source projects into one":
 ## Run
 
 ```bash
-cd BiuWhale
+cd BiliWhaleMusic
 npm install          # or pnpm install
 npm start
 ```
@@ -90,7 +90,7 @@ Requirements: Node.js 18+, Windows 10/11 (macOS / Linux untested, theoretically 
 
 > This directory ships a portable Electron runtime (`runtime/`), so you can
 > also launch it without installing Node by double-clicking the desktop
-> shortcut `鲸音 BiuWhale` (recommended); it points to `runtime/nekobiu.exe`
+> shortcut `鲸音 BiliWhaleMusic` (recommended); it points to `runtime/nekobiu.exe`
 > with the necessary arguments and icon. Because it is an exe shortcut, it
 > avoids Windows' "unverified publisher" script prompt.
 > You can also double-click `start.cmd`: it first shows an
@@ -115,7 +115,7 @@ npm run dist        # produces an NSIS installer under dist/
 ## Directory structure
 
 ```
-BiuWhale/
+BiliWhaleMusic/
 ├── main.js                 # Main process: windows, tray, shortcuts, IPC, Bilibili login, pet positioning
 ├── preload-player.js       # contextBridge API for the player window
 ├── preload-pet.js          # contextBridge API for the pet window

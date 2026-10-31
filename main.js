@@ -19,6 +19,22 @@ const { BiliClient } = require('./src/bili');
 const { LyricsClient } = require('./src/lyrics');
 const { Store } = require('./src/store');
 
+// 改名迁移：旧版产品名 BiuWhale 的 userData（%APPDATA%\BiuWhale）一次性迁到新版
+// （%APPDATA%\BiliWhaleMusic），保留登录态 / 听歌记录 / 成长等级 / 歌词缓存。
+try {
+  const oldUserData = path.join(app.getPath('appData'), 'BiuWhale');
+  const newUserData = app.getPath('userData');
+  if (
+    oldUserData !== newUserData &&
+    fs.existsSync(oldUserData) &&
+    !fs.existsSync(newUserData)
+  ) {
+    fs.cpSync(oldUserData, newUserData, { recursive: true });
+  }
+} catch (e) {
+  console.log('userData migrate skipped:', e && e.message);
+}
+
 // 开发时日志与截图写在项目目录；打包后（asar 只读）落到 userData。
 // 用「能不能在 __dirname 写文件」来判断，比 app.isPackaged 稳（改名后的 runtime 也能正确落盘）。
 let cachedDataDir = null;
@@ -104,7 +120,7 @@ if (!app.requestSingleInstanceLock()) {
   app.on('second-instance', () => showPlayer());
 }
 
-app.setAppUserModelId('com.biuwhale.app');
+app.setAppUserModelId('com.biliwhalemusic.app');
 
 // 透明置顶小窗在部分虚拟机 / 远程桌面里用 GPU 合成会花屏或不可见，关掉硬件加速更稳
 app.disableHardwareAcceleration();
@@ -472,7 +488,7 @@ function createPlayer() {
     transparent: true,
     backgroundColor: '#00000000',
     roundedCorners: true,
-    title: '鲸音 BiuWhale',
+    title: '鲸音 BiliWhaleMusic',
     icon: path.join(ASSETS, 'icon.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload-player.js'),
@@ -665,7 +681,7 @@ function createTray() {
   let image = nativeImage.createFromPath(iconPath);
   if (image.isEmpty()) image = nativeImage.createEmpty();
   tray = new Tray(image.resize({ width: 20, height: 20 }));
-  tray.setToolTip('鲸音 BiuWhale · 小鲸鱼音乐播放器');
+  tray.setToolTip('鲸音 BiliWhaleMusic · 小鲸鱼音乐播放器');
 
   const rebuild = () => {
     const menu = Menu.buildFromTemplate([
@@ -694,7 +710,7 @@ function createTray() {
           if (petWin) petWin.setAlwaysOnTop(item.checked, 'floating');
         } },
       { type: 'separator' },
-      { label: '退出 鲸音 BiuWhale', click: () => { quitting = true; app.quit(); } },
+      { label: '退出 鲸音 BiliWhaleMusic', click: () => { quitting = true; app.quit(); } },
     ]);
     tray.setContextMenu(menu);
   };
@@ -1161,7 +1177,7 @@ ipcMain.handle('settings:apply', (_e, patch) => {
 ipcMain.on('playback:update', (_e, state) => {
   Object.assign(playback, state || {});
   if (tray) tray.setToolTip(
-    playback.title ? `鲸音 BiuWhale · ${playback.title}` : '鲸音 BiuWhale · 小鲸鱼音乐播放器'
+    playback.title ? `鲸音 BiliWhaleMusic · ${playback.title}` : '鲸音 BiliWhaleMusic · 小鲸鱼音乐播放器'
   );
   if (petWin && !petWin.isDestroyed()) {
     petWin.webContents.send('playback', {
@@ -1282,7 +1298,7 @@ ipcMain.on('pet:context-menu', () => {
       },
     },
     { type: 'separator' },
-    { label: '退出 鲸音 BiuWhale', click: () => { quitting = true; app.quit(); } },
+    { label: '退出 鲸音 BiliWhaleMusic', click: () => { quitting = true; app.quit(); } },
   ]);
   menu.popup({ window: petWin, x: Math.round(w / 2), y: 20 });
 });

@@ -1,6 +1,6 @@
 'use strict';
 
-/* 鲸音 BiuWhale 桌宠 —— DeepSeek 小鲸鱼
+/* 鲸音 BiliWhaleMusic 桌宠 —— DeepSeek 小鲸鱼
    形象与气泡风格来自 dsh-whale-widget（MIT，Copyright (c) 2026 MeteorNOX）。
    桌面版行为：固定在原地漂浮，不自己走动；可以拖动；播放音乐时摇摆。 */
 
@@ -270,7 +270,7 @@ function renderTimer() {
   const sec = remain % 60;
   timerVal.textContent = `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
   timerToggle.textContent = running ? '暂停' : '开始';
-  document.title = running ? `${timerVal.textContent} · 专注中` : 'BiuWhale Pet';
+  document.title = running ? `${timerVal.textContent} · 专注中` : 'BiliWhaleMusic Pet';
 }
 function stopTicker() {
   clearInterval(ticker);

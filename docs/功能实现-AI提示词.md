@@ -1,4 +1,4 @@
-# BiuWhale 六个功能 · AI 实现提示词
+# BiliWhaleMusic 六个功能 · AI 实现提示词
 
 > 用法：把对应小节的「提示词」原文复制给 AI 编程助手即可。其中「① 情绪系统」「② 弹幕」「④ 哼唱」都依赖前置改动 **P0**（播放状态转发扩展），请让 AI 先做 P0 再做各功能。
 
@@ -8,7 +8,7 @@
 
 提示词：
 
-> 项目是 Electron 桌宠应用 BiuWhale，位于 `D:\Users\lenovo\Desktop\豆包对话\BiuWhale`。
+> 项目是 Electron 桌宠应用 BiliWhaleMusic，位于 `D:\Users\lenovo\Desktop\豆包对话\BiuWhale`。
 > 现在播放器窗口（`renderer/player/app.js`）通过 `bridge.setPlayback({...})` 发送 `playback:update` 到主进程（`main.js` 第 955 行 `ipcMain.on('playback:update')`），主进程只向桌宠转发 `{playing, title, artist, hasGroup}` 四个字段（`petWin.webContents.send('playback', ...)`）。
 > 请把转发字段扩展为：`{playing, title, artist, hasGroup, duration, author, bvid, cid, page}`。
 > 做法：① 在 `renderer/player/app.js` 调用 `setPlayback` 的位置（搜索 `setPlayback(`），把 `state.current` 里的 `duration`、`author`、`bvid`、`cid`、`page`（若有）一并放进发送对象；② 在 `main.js` 的 `playback:update` 处理器里，把 `playback.duration / playback.author / playback.bvid / playback.cid` 合并进转发给桌宠的 playback 事件。不要破坏现有 `onPlayback` 在 `renderer/pet/pet.js` 中的既有用法（它已用 title/artist/playing/hasGroup）。
@@ -19,7 +19,7 @@
 
 提示词：
 
-> 在 Electron 桌宠 BiuWhale（`D:\Users\lenovo\Desktop\豆包对话\BiuWhale`）实现「鲸鱼情绪系统」：听歌时根据歌曲气质切换姿态，不只摇摆。
+> 在 Electron 桌宠 BiliWhaleMusic（`D:\Users\lenovo\Desktop\豆包对话\BiuWhale`）实现「鲸鱼情绪系统」：听歌时根据歌曲气质切换姿态，不只摇摆。
 > 涉及文件：`renderer/pet/pet.js`、`renderer/pet/index.html`。
 > 现状锚点：`pet.js` 已有 `setAction('idle'|'dance'|'drag')`、`window.petAPI.onPlayback(state)`（state 含 title/artist/playing/hasGroup，P0 扩展后含 duration/author）；`index.html` 有 `body.action-idle`（float 动画 3.4s）、`body.action-dance`（dance 动画 0.5s alternate）、`body.action-drag`。
 > 实现要点：
@@ -35,7 +35,7 @@
 
 提示词：
 
-> 在 Electron 桌宠 BiuWhale（`D:\Users\lenovo\Desktop\豆包对话\BiuWhale`）实现「弹幕氛围」：切歌时鲸鱼从该视频的热门弹幕里挑一条冒气泡「吐槽」。
+> 在 Electron 桌宠 BiliWhaleMusic（`D:\Users\lenovo\Desktop\豆包对话\BiuWhale`）实现「弹幕氛围」：切歌时鲸鱼从该视频的热门弹幕里挑一条冒气泡「吐槽」。
 > 涉及文件：`main.js`（新增 IPC + 弹幕抓取）、`renderer/pet/pet.js`（切歌时请求并 say）。
 > 约束：`renderer/pet/index.html` 的 CSP 是 `default-src 'self'`，**桌宠渲染进程不能直接 fetch 外部**，弹幕必须走主进程抓取再 IPC 回传。
 > 现状锚点：P0 后 `onPlayback(state)` 有 bvid/cid；`pet.js` 有 `say(text, ms)`；主进程已有 `ipcMain.handle('lyrics:get')` 等 handler 模式可参考。
@@ -52,7 +52,7 @@
 
 提示词：
 
-> 在 Electron 桌宠 BiuWhale（`D:\Users\lenovo\Desktop\豆包对话\BiuWhale`）实现「鲸鱼成长系统」：听歌攒音浪值，喂鲸鱼升级，解锁气泡样式。
+> 在 Electron 桌宠 BiliWhaleMusic（`D:\Users\lenovo\Desktop\豆包对话\BiuWhale`）实现「鲸鱼成长系统」：听歌攒音浪值，喂鲸鱼升级，解锁气泡样式。
 > 涉及文件：`src/store.js`、`main.js`（听歌计时累加处、`sampleStats`）、`renderer/pet/pet.js`、`renderer/pet/index.html`。
 > 现状锚点：`store.js` 的 `DEFAULTS` 已有 `listenTotal/listenToday/listenDate`（听歌累计秒），`main.js` 中已有累加 `listenTotal` 的计时逻辑（README：每 10 秒落盘一次），`sampleStats` 会把 `listen` 推给桌宠（`pet:stats`，pet.js 的 `renderStats` 读取 `st.listen`）；`index.html` 有 `.card.stat` 卡片（CPU/内存/听歌）。
 > 实现要点：
@@ -69,7 +69,7 @@
 
 提示词：
 
-> 在 Electron 桌宠 BiuWhale（`D:\Users\lenovo\Desktop\豆包对话\BiuWhale`）实现「歌词哼唱」：播放时鲸鱼气泡逐字显示当前歌词，像在哼唱。
+> 在 Electron 桌宠 BiliWhaleMusic（`D:\Users\lenovo\Desktop\豆包对话\BiuWhale`）实现「歌词哼唱」：播放时鲸鱼气泡逐字显示当前歌词，像在哼唱。
 > 涉及文件：`renderer/player/app.js`（歌词高亮循环推送当前行）、`main.js`（转发）、`renderer/pet/pet.js`（逐字打字机）、`renderer/pet/index.html`。
 > 现状锚点：`app.js` 歌词面板高亮循环（约第 620 行，`const t = (audio.currentTime || 0) + 0.15;` 附近）已解析 LRC 到 `state.lyrics.lines` 并按时间标 `active`；歌词不存在时只显示曲名；`pet.js` 有 `say(text, ms)`；P0 后 playback 转发字段已扩展。
 > 实现要点：
@@ -85,7 +85,7 @@
 
 提示词：
 
-> 在 Electron 桌宠 BiuWhale（`D:\Users\lenovo\Desktop\豆包对话\BiuWhale`）实现「听歌时光机」：鲸鱼偶尔冒泡「去年今日你在听《XX》」。
+> 在 Electron 桌宠 BiliWhaleMusic（`D:\Users\lenovo\Desktop\豆包对话\BiuWhale`）实现「听歌时光机」：鲸鱼偶尔冒泡「去年今日你在听《XX》」。
 > 涉及文件：`src/store.js`、`main.js`（记录历史 + 定时触发）、`renderer/pet/pet.js`（say）。
 > 现状锚点：`store.js` `DEFAULTS` 有 `listenDate`（跨天归零逻辑）；`main.js` 的 `playback:update`（第 955 行）能感知曲名变化；`pet.js` 的 `say(text, ms)`。
 > 实现要点：
@@ -101,7 +101,7 @@
 
 提示词：
 
-> 在 Electron 桌宠 BiuWhale（`D:\Users\lenovo\Desktop\豆包对话\BiuWhale`）实现「摸头彩蛋」：连续摸头递增反馈，深夜摸头提醒睡觉。
+> 在 Electron 桌宠 BiliWhaleMusic（`D:\Users\lenovo\Desktop\豆包对话\BiuWhale`）实现「摸头彩蛋」：连续摸头递增反馈，深夜摸头提醒睡觉。
 > 涉及文件：`renderer/pet/pet.js`、`renderer/pet/index.html`。
 > 现状锚点：`pet.js` 的 `onTap()`（260ms 双击判定，第二击调 `pat()`）；`pat()` 已有 `petpet.classList.add('show')`（rua.gif）+ 6 颗随机爱心（`hearts`）+ 随机话气泡（`say(['rua～','好舒服…',...], 1800)`）；`index.html` 有 `#hearts i` 的 `heartUp` 动画、`#petpet.show`。
 > 实现要点：

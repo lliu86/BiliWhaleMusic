@@ -1,11 +1,11 @@
 {
-  "name": "biuwhale",
-  "productName": "BiuWhale",
+  "name": "biliwhalemusic",
+  "productName": "BiliWhaleMusic",
   "version": "1.0.0",
   "private": true,
-  "description": "鲸音 BiuWhale - 小鲸鱼桌宠 × B站音乐播放器（Biu + dsh-whale-widget + ANeko 的合并实验）",
+  "description": "鲸音 BiliWhaleMusic - 小鲸鱼桌宠 × B站音乐播放器（Bili + dsh-whale-widget + ANeko 的合并实验）",
   "main": "main.js",
-  "author": "BiuWhale",
+  "author": "BiliWhaleMusic",
   "license": "MIT",
   "scripts": {
     "start": "electron . --no-sandbox",
@@ -14,8 +14,8 @@
     "dist": "electron-builder --win nsis"
   },
   "build": {
-    "appId": "com.biuwhale.desktop",
-    "productName": "BiuWhale",
+    "appId": "com.biliwhalemusic.desktop",
+    "productName": "BiliWhaleMusic",
     "files": [
       "main.js",
       "preload-player.js",
@@ -48,9 +48,9 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "BiuWhale"
+      "shortcutName": "BiliWhaleMusic"
     },
-    "artifactName": "BiuWhale-Setup-${version}.${ext}",
+    "artifactName": "BiliWhaleMusic-Setup-${version}.${ext}",
     "electronLanguages": ["zh-CN", "en-US"]
   },
   "devDependencies": {

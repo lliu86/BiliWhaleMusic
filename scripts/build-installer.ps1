@@ -1,4 +1,4 @@
-﻿# 打包 BiuWhale 安装包：纯 ASCII 构建目录放在 D:\biuwhale-build
+# 打包 BiliWhaleMusic 安装包：纯 ASCII 构建目录放在 D:\biuwhale-build
 # 用法：powershell -NoProfile -ExecutionPolicy Bypass -File scripts\build-installer.ps1
 $ErrorActionPreference = 'Stop'
 
@@ -50,8 +50,8 @@ try {
 # 4) 产物回项目
 $dist = Join-Path $src 'dist'
 if (-not (Test-Path $dist)) { New-Item -ItemType Directory -Path $dist | Out-Null }
-Copy-Item (Join-Path $dst 'dist\BiuWhale-Setup-1.0.0.exe') $dist -Force
-Copy-Item (Join-Path $dst 'dist\BiuWhale-Setup-1.0.0.exe.blockmap') $dist -Force -ErrorAction SilentlyContinue
+Copy-Item (Join-Path $dst 'dist\BiliWhaleMusic-Setup-1.0.0.exe') $dist -Force
+Copy-Item (Join-Path $dst 'dist\BiliWhaleMusic-Setup-1.0.0.exe.blockmap') $dist -Force -ErrorAction SilentlyContinue
 if (Test-Path (Join-Path $src 'dist\win-unpacked')) { Remove-Item (Join-Path $src 'dist\win-unpacked') -Recurse -Force }
 Copy-Item (Join-Path $dst 'dist\win-unpacked') $dist -Recurse -Force
 
@@ -60,6 +60,6 @@ $j = Join-Path $dst 'node_modules'
 if (Test-Path $j) { cmd /c rmdir "$j" | Out-Null }
 if (Test-Path $dst) { Remove-Item $dst -Recurse -Force }
 
-$exe = Join-Path $dist 'BiuWhale-Setup-1.0.0.exe'
+$exe = Join-Path $dist 'BiliWhaleMusic-Setup-1.0.0.exe'
 $size = [math]::Round((Get-Item $exe).Length / 1MB, 1)
 Write-Host "完成：$exe （$size MB）"

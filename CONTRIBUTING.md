@@ -1,6 +1,6 @@
-# Contributing to BiuWhale
+# Contributing to BiliWhaleMusic
 
-感谢你愿意为 BiuWhale 贡献。项目规模不大，规则尽量简单，请先读完再动手。
+感谢你愿意为 BiliWhaleMusic 贡献。项目规模不大，规则尽量简单，请先读完再动手。
 
 ## 行为准则
 
