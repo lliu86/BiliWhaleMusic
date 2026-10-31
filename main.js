@@ -19,10 +19,17 @@ const { BiliClient } = require('./src/bili');
 const { LyricsClient } = require('./src/lyrics');
 const { Store } = require('./src/store');
 
-const LOG_FILE = path.join(__dirname, 'startup.log');
+// 开发时日志与截图写在项目目录；打包后落在 userData（asar 内只读）
+function dataDir() {
+  try {
+    return app.isPackaged ? app.getPath('userData') : __dirname;
+  } catch (_) {
+    return __dirname;
+  }
+}
 function log(...args) {
   try {
-    fs.appendFileSync(LOG_FILE, `[${new Date().toISOString()}] ${args.join(' ')}\n`);
+    fs.appendFileSync(path.join(dataDir(), 'startup.log'), `[${new Date().toISOString()}] ${args.join(' ')}\n`);
   } catch (_) {}
 }
 log('--- boot', process.argv.join(' '));
@@ -172,7 +179,7 @@ function startWidgetStats() {
 
 /** 截图模式：用于无头/远程环境验证界面 */
 async function captureShots() {
-  const dir = path.join(__dirname, 'shots');
+  const dir = path.join(dataDir(), 'shots');
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   try {
     fs.mkdirSync(dir, { recursive: true });

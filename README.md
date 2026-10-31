@@ -86,6 +86,9 @@ npm install
 npm run dist        # 输出 Windows NSIS 安装包到 dist/
 ```
 
+> 安装包未做代码签名，首次运行 Windows 会弹 SmartScreen「已保护你的电脑」，
+> 点「更多信息 → 仍要运行」即可；企业分发请自行签名。
+>
 > ⚠️ **需要在纯英文路径下打包**（如 `C:\biuwhale-build`）：项目路径含中文时
 > NSIS 会报 "Error writing temporary file"（makensis 对非 ASCII 路径支持不佳）。
 > 打包复用本地已安装的 Electron（`build.electronDist` 配置），首次构建若网络受限
@@ -111,10 +114,16 @@ BiuWhale/
 │   ├── player/             # 播放器界面（发现 / B站收藏 / 本机收藏）
 │   └── pet/                # 桌宠：DeepSeek 小鲸鱼（HTML/CSS）
 ├── assets/
-│   ├── icon.png / tray.png # 应用与托盘图标（鲸鱼娘插画 + 黑色圆角底）
+│   ├── icon.ico / icon.png # 应用图标（鲸鱼娘插画 + 深蓝紫渐变圆角底，多尺寸）
+│   ├── tray.png            # 托盘图标（32px）
 │   └── whale/              # 鲸鱼娘素材（dsh-whale-widget，MIT）
-└── shots/                  # 运行截图（由 --shot 模式生成）
+├── docs/images/            # README 用截图
+└── shots/                  # 开发态 --shot 截图（打包后写到 userData\shots）
 ```
+
+> `--shot` 是自检模式：启动后自动截图播放器/桌宠到 `shots/` 并退出。
+> 打包版没有可写的项目目录，日志与截图统一写到 `userData`（Windows 下是
+> `%APPDATA%\BiuWhale`，或你用 `--user-data-dir` 指定的目录）。
 
 ## 实现要点
 
