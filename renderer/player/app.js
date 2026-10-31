@@ -506,7 +506,8 @@ let beatCtx = null;
 let beatSrc = null;
 let beatAna = null;
 let beatAvg = 0;
-let beatPrev = 0;
+let lastBeatAt = 0;
+let levelSmooth = 0;
 let beatBuf = null;
 
 function initBeat() {
@@ -518,7 +519,7 @@ function initBeat() {
     beatSrc = beatCtx.createMediaElementSource(audio);
     beatAna = beatCtx.createAnalyser();
     beatAna.fftSize = 512;
-    beatAna.smoothingTimeConstant = 0.3;
+    beatAna.smoothingTimeConstant = 0.8; // 社区共识：平滑才有“质量感”，太低会抽搐
     beatSrc.connect(beatAna);
     beatAna.connect(beatCtx.destination); // 必须接回输出，否则会静音
     setInterval(beatTick, 100);
@@ -537,12 +538,17 @@ function beatTick() {
   let low = 0;
   for (let i = 1; i < 7; i++) low += beatBuf[i];
   low /= 6;
-  beatAvg = beatAvg * 0.85 + low * 0.15;
-  const beat = low > beatAvg * 1.22 && low > beatPrev * 1.12;
-  beatPrev = low;
-  const level = Math.min(1, low / 170);
+  const now = Date.now();
+  // 慢基线 EMA：自适应阈值，鼓点相对自身历史能量判定，免标定绝对量级
+  beatAvg = beatAvg * 0.9 + low * 0.1;
+  // 脉冲：能量显著高于基线，且距上次 ≥250ms（onset 间隔，防同鼓点连触发/尾音误触发）
+  const beat = low > beatAvg * 1.35 && now - lastBeatAt > 250;
+  if (beat) lastBeatAt = now;
+  // 连续强度：相对基线归一化 + 低通平滑，输出 0-1 驱动摇摆速度/幅度
+  const level = Math.min(1, low / Math.max(1, beatAvg * 3.5));
+  levelSmooth = levelSmooth * 0.7 + level * 0.3;
   if (window.api && window.api.sendBeat) {
-    window.api.sendBeat({ level: Number(level.toFixed(3)), beat: !!beat });
+    window.api.sendBeat({ level: Number(levelSmooth.toFixed(3)), beat });
   }
 }
 

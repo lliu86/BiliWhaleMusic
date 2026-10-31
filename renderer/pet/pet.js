@@ -122,18 +122,20 @@ window.petAPI.onPlayback((state) => {
   }
 });
 
-/* 实时节拍：强度驱动摇摆速度（--dance-dur），鼓点触发脉冲弹跳 */
+/* 实时节拍：强度同时驱动摇摆速度(--dance-dur)与摆幅(--sway)，鼓点触发脉冲弹跳(独立层，不抢摇摆) */
 let beatPulseTimer = null;
 window.petAPI.onBeat((v) => {
   if (!v) return;
   const level = Math.max(0, Math.min(1, Number(v.level) || 0));
-  // 强度 0 → 1.2s（舒缓），强度 1 → 0.3s（劲爆）
+  // 强度 0 → 1.2s/2deg（舒缓），强度 1 → 0.3s/8deg（劲爆）
   const dur = (1.2 - level * 0.9).toFixed(2) + 's';
+  const sway = (2 + level * 6).toFixed(1) + 'deg';
   document.body.style.setProperty('--dance-dur', dur);
+  document.body.style.setProperty('--sway', sway);
   if (v.beat && playing) {
     document.body.classList.add('beat');
     clearTimeout(beatPulseTimer);
-    beatPulseTimer = setTimeout(() => document.body.classList.remove('beat'), 170);
+    beatPulseTimer = setTimeout(() => document.body.classList.remove('beat'), 180);
   }
 });
 

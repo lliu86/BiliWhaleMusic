@@ -39,6 +39,15 @@
     will-change: transform;
   }
 
+  /* 中间层：鼓点脉冲挂在这里，与 #whale 的摇摆动画互不抢占 */
+  #whaleInner {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    transform-origin: 50% 92%;
+    will-change: transform;
+  }
+
   #whale {
     width: 100%;
     height: auto;
@@ -54,17 +63,17 @@
     50% { transform: translateY(-3.5px) scale(0.995, 1.008); }
   }
   @keyframes dance {
-    from { transform: translateY(0) rotate(-3.5deg) scale(1); }
-    to { transform: translateY(-8px) rotate(3.5deg) scale(1.03); }
+    from { transform: translateY(0) rotate(calc(-1 * var(--sway, 3.5deg))) scale(1); }
+    to { transform: translateY(-8px) rotate(var(--sway, 3.5deg)) scale(1.03); }
   }
 
   @keyframes dance-hype {
-    from { transform: translateY(-2px) rotate(-6deg) scale(1.02); }
-    to { transform: translateY(-12px) rotate(6deg) scale(1.06); }
+    from { transform: translateY(-2px) rotate(calc(-1 * var(--sway, 6deg))) scale(1.02); }
+    to { transform: translateY(-12px) rotate(var(--sway, 6deg)) scale(1.06); }
   }
   @keyframes dance-chill {
-    from { transform: translateY(0) rotate(-2deg) scale(1); }
-    to { transform: translateY(-5px) rotate(2deg) scale(1.01); }
+    from { transform: translateY(0) rotate(calc(-1 * var(--sway, 2deg))) scale(1); }
+    to { transform: translateY(-5px) rotate(var(--sway, 2deg)) scale(1.01); }
   }
   @keyframes bounce-happy {
     0%, 100% { transform: translateY(0) scale(1); }
@@ -86,7 +95,7 @@
   body.mood-happy.action-dance #whale { animation: bounce-happy var(--dance-dur, 0.9s) ease-in-out infinite; }
   body.action-twirl #whale { animation: twirl 0.6s ease; }
   body.action-drag #whale { transform: rotate(-7deg) scale(1.04); }
-  body.beat #whale { animation: beatPulse 0.16s ease-out !important; }
+  body.beat #whaleInner { animation: beatPulse 0.17s ease-out; }
 
   #whaleShadow {
     position: absolute;
@@ -374,7 +383,7 @@
         <div class="bubble-dots"><i></i><i></i><i></i></div>
       </div>
       <div id="whaleShadow"></div>
-      <div id="whaleWrap"><img id="whale" src="../../assets/whale/whale.png" alt="" /></div>
+      <div id="whaleWrap"><div id="whaleInner"><img id="whale" src="../../assets/whale/whale.png" alt="" /></div></div>
       <img id="petpet" src="../../assets/whale/rua.gif" alt="" />
       <button id="widgetBtn" title="组件">
         <svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>
