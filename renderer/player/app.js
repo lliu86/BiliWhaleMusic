@@ -364,7 +364,12 @@ async function doLogin() {
   if (r && r.ok) {
     state.auth = r.user;
     toast(`登录成功：${r.user.uname}`);
-    updateAccountUI();
+    try {
+    const v = await bridge.version();
+    if (v) $('#aboutVersion').textContent = 'BiliWhaleMusic v' + v;
+  } catch (e) { /* 旧版主进程无此接口时忽略 */ }
+
+  updateAccountUI();
     await loadFolders();
   } else if (r && r.pending) {
     toast('登录窗口已打开');

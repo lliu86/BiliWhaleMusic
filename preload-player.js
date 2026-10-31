@@ -13,6 +13,7 @@ contextBridge.exposeInMainWorld('api', {
   favFolders: () => ipcRenderer.invoke('bili:fav-folders'),
   favList: (mediaId, pn) => ipcRenderer.invoke('bili:fav-list', mediaId, pn),
   openExternal: (url) => ipcRenderer.invoke('bili:open-external', url),
+  version: () => ipcRenderer.invoke('app:version'),
   storeAll: () => ipcRenderer.invoke('store:all'),
   storeSet: (key, value) => ipcRenderer.invoke('store:set', key, value),
   applySettings: (patch) => ipcRenderer.invoke('settings:apply', patch),

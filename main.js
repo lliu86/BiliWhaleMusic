@@ -1148,6 +1148,7 @@ ipcMain.handle('bili:open-external', async (_e, url) => {
   }
 });
 
+ipcMain.handle('app:version', () => app.getVersion());
 ipcMain.handle('store:all', () => store.all);
 
 ipcMain.handle('store:set', (_e, key, value) => {
