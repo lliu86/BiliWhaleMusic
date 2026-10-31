@@ -91,6 +91,13 @@ npm run dist        # 输出 Windows NSIS 安装包到 dist/
 >
 > ⚠️ **需要在纯英文路径下打包**（如 `C:\biuwhale-build`）：项目路径含中文时
 > NSIS 会报 "Error writing temporary file"（makensis 对非 ASCII 路径支持不佳）。
+> 不想重新装依赖的话，用目录联接把 `node_modules` 指回来即可：
+>
+> ```bat
+> mklink /J C:\biuwhale-build\node_modules "D:\path\to\BiuWhale\node_modules"
+> cd C:\biuwhale-build && npx electron-builder --win nsis
+> ```
+>
 > 打包复用本地已安装的 Electron（`build.electronDist` 配置），首次构建若网络受限
 > 请配置镜像源：
 >
