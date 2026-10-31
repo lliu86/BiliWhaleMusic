@@ -38,9 +38,10 @@ function setMood(next) {
 function pickMood(state) {
   if (state.hasGroup === false) return 'happy';
   const t = String(state.title || '') + ' ' + String(state.artist || '');
-  if (/remix|燃|战歌|电音|dance|蹦迪|DJ|摇滚|串烧/i.test(t)) return 'hype';
+  // 抒情/治愈类关键词优先：5 分钟以上的抒情曲不应被时长规则误判成 hype
+  if (/抒情|温柔|安静|治愈|钢琴|纯音乐|钢琴曲|民谣|轻音乐|睡前/i.test(t)) return 'chill';
+  if (/remix|燃|战歌|电音|dance|蹦迪|DJ|摇滚|串烧|EDM|加速/i.test(t)) return 'hype';
   if (Number(state.duration) >= 300) return 'hype';
-  if (/抒情|温柔|安静|治愈|钢琴|纯音乐|钢琴曲/i.test(t)) return 'chill';
   return 'chill';
 }
 
@@ -136,7 +137,10 @@ function requestDanmaku(state) {
       const pool = res.list.filter((t) => t.length >= 5 && t.length <= 30);
       const list = pool.length ? pool : res.list;
       const text = list[Math.floor(Math.random() * list.length)];
-      say('弹幕说：' + text, 4500);
+      // 延迟 1.2s 再显示，让「♪ 曲名」气泡先停留一会儿；若期间已切歌则丢弃
+      setTimeout(() => {
+        if (key === lastDanmakuKey) say('弹幕说：' + text, 4500);
+      }, 1200);
     })
     .catch(() => {});
 }

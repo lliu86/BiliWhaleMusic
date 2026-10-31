@@ -810,6 +810,7 @@ function seekTo(clientX) {
 /* ---------------- 设置 ---------------- */
 
 function openSettings() {
+  bridge.petTempHide(true); // 桌宠置顶会盖住设置弹层，打开时先收起来
   const s = state.settings;
   $('#petScale').value = Math.round((s.petScale || 1) * 100);
   $('#scaleVal').textContent = Math.round((s.petScale || 1) * 100) + '%';
@@ -823,6 +824,7 @@ function openSettings() {
 
 function closeSettings() {
   $('#settingsModal').classList.remove('open');
+  bridge.petTempHide(false);
 }
 
 async function saveSettings() {
@@ -859,6 +861,7 @@ function localDate() {
 
 function saveListen() {
   bridge.storeSet('listenTotal', Math.round(state.listen.total));
+  bridge.storeSet('listenWave', Math.round(state.listen.total)); // 音浪值与累计听歌秒同步
   bridge.storeSet('listenToday', Math.round(state.listen.today));
   bridge.storeSet('listenDate', state.listen.date);
 }
@@ -1011,6 +1014,7 @@ function bind() {
   });
   $('#swTop').onclick = (e) => e.currentTarget.classList.toggle('on');
   $('#swShowPet').onclick = (e) => e.currentTarget.classList.toggle('on');
+  $('#swCloseTray').onclick = (e) => e.currentTarget.classList.toggle('on');
 
   $('#btnMin').onclick = () => bridge.minimize();
   $('#btnClose').onclick = () => bridge.hide();

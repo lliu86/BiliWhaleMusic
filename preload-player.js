@@ -18,6 +18,7 @@ contextBridge.exposeInMainWorld('api', {
   applySettings: (patch) => ipcRenderer.invoke('settings:apply', patch),
   setPlayback: (state) => ipcRenderer.send('playback:update', state),
   setLyricLine: (text) => ipcRenderer.send('lyric:line', text),
+  petTempHide: (hide) => ipcRenderer.send('pet:temp-hide', hide),
   hide: () => ipcRenderer.send('player:hide'),
   minimize: () => ipcRenderer.send('player:minimize'),
   onCommand: (cb) => ipcRenderer.on('command', (_e, cmd) => cb(cmd)),

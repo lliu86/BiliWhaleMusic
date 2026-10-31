@@ -9,6 +9,9 @@ build/
 runtime/
 userdata/
 
+# Write-permission probe residue
+.write-probe
+
 # Logs
 *.log
 startup.log

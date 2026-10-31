@@ -167,9 +167,9 @@ app.whenReady().then(() => {
 let prevCpuTimes = os.cpus().map((c) => c.times);
 let statsTimer = null;
 
-/* 成长系统：音浪值 = 累计听歌秒数，等级用平方根曲线（约 10 分钟一级） */
+/* 成长系统：音浪值 = 累计听歌秒数（listenWave，与 listenTotal 同步累计），等级用平方根曲线（约 10 分钟一级） */
 function growth() {
-  const wave = Math.max(0, Math.round(Number(store.get('listenTotal')) || 0));
+  const wave = Math.max(0, Math.round(Number(store.get('listenWave')) || 0));
   const level = 1 + Math.floor(Math.sqrt(wave / 600));
   const exp = wave % 600;
   if (Number(store.get('petLevel')) !== level) {
@@ -806,7 +806,7 @@ function decodeDmXml(xml) {
       .replace(/&#39;/g, "'")
       .trim();
     if (text && text.length <= 60 && !out.includes(text)) out.push(text);
-    if (out.length >= 200) break;
+    if (out.length >= 2000) break;
   }
   return out;
 }
@@ -1159,6 +1159,17 @@ ipcMain.on('pet:panel', (_e, open) => {
   if (open && petWin && !petWin.isDestroyed()) {
     petWin.webContents.send('pet:stats', sampleStats());
   }
+});
+
+ipcMain.on('pet:temp-hide', (_e, hide) => {
+  if (!petWin || petWin.isDestroyed()) return;
+  if (hide) {
+    petWin.__tempHidden = true;
+    petWin.hide();
+    return;
+  }
+  petWin.__tempHidden = false;
+  if (store.get('showPet') !== false) petWin.showInactive();
 });
 
 ipcMain.on('pet:interactive', (_e, interactive) => {
