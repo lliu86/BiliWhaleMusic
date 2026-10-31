@@ -195,6 +195,7 @@ async function captureShots() {
   try {
     fs.mkdirSync(dir, { recursive: true });
 
+
     if (process.argv.includes('--login-shot')) {
       openLoginWindow().catch((e) => log('login win error', e && e.stack));
       await sleep(5500);
@@ -369,15 +370,25 @@ app.on('before-quit', () => {
 
 function createPlayer() {
   const area = screen.getPrimaryDisplay().workArea;
-  const width = 560;
-  const height = Math.min(820, area.height - 40);
+  // 记住上次的窗口大小/位置；首次启动给一个更宽的默认值
+  const saved = store.get('winBounds');
+  let width = 640;
+  let height = Math.min(900, area.height - 50);
+  let x = Math.round(area.x + (area.width - width) / 2);
+  let y = Math.round(area.y + (area.height - height) / 2);
+  if (saved && saved.width >= 480 && saved.height >= 600) {
+    width = Math.min(saved.width, area.width - 20);
+    height = Math.min(saved.height, area.height - 20);
+    x = Math.min(Math.max(area.x, saved.x), area.x + area.width - width);
+    y = Math.min(Math.max(area.y, saved.y), area.y + area.height - height);
+  }
   playerWin = new BrowserWindow({
     width,
     height,
-    x: Math.round(area.x + (area.width - width) / 2),
-    y: Math.round(area.y + (area.height - height) / 2),
-    minWidth: 480,
-    minHeight: 620,
+    x,
+    y,
+    minWidth: 520,
+    minHeight: 640,
     show: false,
     frame: false,
     transparent: true,
@@ -393,6 +404,20 @@ function createPlayer() {
       spellcheck: false,
     },
   });
+
+  let saveBoundsTimer = null;
+  const persistBounds = () => {
+    clearTimeout(saveBoundsTimer);
+    saveBoundsTimer = setTimeout(() => {
+      try {
+        if (!playerWin || playerWin.isDestroyed() || playerWin.isMinimized()) return;
+        const b = playerWin.getBounds();
+        if (b.width >= 480 && b.height >= 600) store.set('winBounds', b);
+      } catch (_) {}
+    }, 500);
+  };
+  playerWin.on('resize', persistBounds);
+  playerWin.on('move', persistBounds);
 
   playerWin.loadFile(path.join(__dirname, 'renderer', 'player', 'index.html'));
 
@@ -740,6 +765,31 @@ function openLoginWindow() {
         nodeIntegration: false,
         sandbox: true,
       },
+    });
+    // 二维码会过期，页面里塞一个「刷新二维码」按钮，Ctrl+R / F5 也能重载
+    const injectRefreshBtn = () => {
+      if (!loginWin || loginWin.isDestroyed()) return;
+      loginWin.webContents
+        .executeJavaScript(`(() => {
+          if (document.getElementById('__bw_refresh')) return;
+          const b = document.createElement('button');
+          b.id = '__bw_refresh';
+          b.textContent = '刷新二维码';
+          b.title = '二维码过期了点这里（Ctrl+R）';
+          b.style.cssText = 'position:fixed;right:18px;bottom:18px;z-index:2147483647;padding:9px 16px;' +
+            'border-radius:999px;border:1px solid #00aeec;background:#fff;color:#00aeec;font-size:13px;' +
+            'font-weight:600;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.18)';
+          b.onclick = () => location.reload();
+          document.body.appendChild(b);
+        })()`)
+        .catch(() => {});
+    };
+    loginWin.webContents.on('did-finish-load', injectRefreshBtn);
+    loginWin.webContents.on('before-input-event', (_e, input) => {
+      const k = (input.key || '').toLowerCase();
+      if (input.type === 'keyDown' && (k === 'f5' || (input.control && k === 'r'))) {
+        loginWin.webContents.reload();
+      }
     });
     loginWin.loadURL('https://passport.bilibili.com/login');
     log('login window created', JSON.stringify(loginWin.getBounds()));

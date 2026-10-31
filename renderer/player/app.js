@@ -34,6 +34,7 @@ const state = {
   favPage: 1,
   favHasMore: false,
   favLoading: false,
+  favFetchedAt: 0,
 };
 
 const MODES = [
@@ -238,8 +239,10 @@ function switchTab(view) {
   const isSearch = view === 'search';
   $('#searchBar').style.display = isSearch ? 'flex' : 'none';
   renderContent();
-  if (view === 'bfav' && state.auth.isLogin && !state.favFolders.length && !state.favFoldersLoading) {
-    loadFolders();
+  if (view === 'bfav' && state.auth.isLogin && !state.favFoldersLoading) {
+    // 切回收藏页时，超过 60 秒就自动静默刷新一次，保证和服务端一致
+    const stale = !state.favFolders.length || Date.now() - (state.favFetchedAt || 0) > 60000;
+    if (stale) loadFolders(false);
   }
 }
 
@@ -310,6 +313,14 @@ function renderBiliFav(box) {
       bar.appendChild(b);
     });
   }
+  const rf = document.createElement('button');
+  rf.className = 'chip refresh' + (state.favFoldersLoading ? ' spinning' : '');
+  rf.title = '刷新收藏夹内容';
+  rf.textContent = '↻ 刷新';
+  rf.onclick = () => {
+    if (!state.favFoldersLoading) loadFolders(true);
+  };
+  bar.appendChild(rf);
   box.appendChild(bar);
 
   if (state.favLoading) {
@@ -375,14 +386,20 @@ async function doLogout() {
   renderContent();
 }
 
-async function loadFolders() {
+async function loadFolders(manual = false) {
   state.favFoldersLoading = true;
   renderContent();
   const r = await bridge.favFolders();
   state.favFoldersLoading = false;
   if (r.ok && r.data) {
     state.favFolders = r.data;
-    if (!state.favFolderId && r.data.length) state.favFolderId = r.data.length ? r.data[0].id : null;
+    state.favFetchedAt = Date.now();
+    if (!state.favFolderId && r.data.length) state.favFolderId = r.data[0].id;
+    // 原来选中的收藏夹可能被删了，回退到第一个
+    if (state.favFolderId && !r.data.some((f) => f.id === state.favFolderId)) {
+      state.favFolderId = r.data.length ? r.data[0].id : null;
+    }
+    if (manual) toast('收藏夹已刷新');
   } else {
     state.favFolders = [];
     toast(r.error || '获取收藏夹失败');
@@ -1088,3 +1105,5 @@ async function boot() {
 
 boot();
 
+// 调试/自动化截图用：控制台里可以拿到状态、手动切页
+window.__biu = { state, renderContent, loadFolders, switchTab, refreshFavorites: () => loadFolders(true) };
