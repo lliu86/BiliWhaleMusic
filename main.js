@@ -502,7 +502,7 @@ function createPet() {
     },
   });
 
-  petWin.setAlwaysOnTop(store.get('petAlwaysOnTop') !== false, 'screen-saver');
+  petWin.setAlwaysOnTop(store.get('petAlwaysOnTop') !== false, 'floating');
   petWin.loadFile(path.join(__dirname, 'renderer', 'pet', 'index.html'), {
     query: { scale: String(scale) },
   });
@@ -567,7 +567,7 @@ function createTray() {
       },
       { label: '桌宠置顶', type: 'checkbox', checked: store.get('petAlwaysOnTop') !== false, click: (item) => {
           store.set('petAlwaysOnTop', item.checked);
-          if (petWin) petWin.setAlwaysOnTop(item.checked, 'screen-saver');
+          if (petWin) petWin.setAlwaysOnTop(item.checked, 'floating');
         } },
       { type: 'separator' },
       { label: '退出 鲸音 BiuWhale', click: () => { quitting = true; app.quit(); } },
@@ -942,7 +942,7 @@ ipcMain.handle('settings:apply', (_e, patch) => {
   if (typeof patch.petScale === 'number') applyPetScale(patch.petScale);
   if (typeof patch.petAlwaysOnTop === 'boolean') {
     store.set('petAlwaysOnTop', patch.petAlwaysOnTop);
-    if (petWin) petWin.setAlwaysOnTop(patch.petAlwaysOnTop, 'screen-saver');
+    if (petWin) petWin.setAlwaysOnTop(patch.petAlwaysOnTop, 'floating');
   }
   if (typeof patch.showPet === 'boolean') {
     store.set('showPet', patch.showPet);
